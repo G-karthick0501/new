@@ -1,8 +1,15 @@
-// frontend/src/components/interview/InterviewResults.jsx
+// frontend/src/components/interview/InterviewResults.jsx - MINIMAL CHANGES
 export default function InterviewResults({ results, onRestart }) {
   if (!results) return null;
 
-  const { score, feedback, questionsAnswered, totalQuestions } = results;
+  const { 
+    score, 
+    feedback, 
+    questionsAnswered, 
+    totalQuestions,
+    detailedAnalysis = [],
+    hasAiAnalysis = false 
+  } = results;
 
   const getScoreColor = (score) => {
     if (score >= 80) return '#28a745';
@@ -54,6 +61,20 @@ export default function InterviewResults({ results, onRestart }) {
         <div style={{ fontSize: 14, color: '#666' }}>
           You answered {questionsAnswered} out of {totalQuestions} questions
         </div>
+
+        {/* ✅ ADD: AI Analysis Indicator */}
+        {hasAiAnalysis && (
+          <div style={{ 
+            marginTop: 15,
+            padding: 8,
+            backgroundColor: '#d4edda',
+            borderRadius: 4,
+            color: '#155724',
+            fontSize: 12
+          }}>
+            🤖 <strong>AI Analysis Complete!</strong>
+          </div>
+        )}
       </div>
 
       {/* Feedback */}
@@ -63,13 +84,69 @@ export default function InterviewResults({ results, onRestart }) {
       }}>
         <h3>Feedback & Suggestions:</h3>
         <ul style={{ lineHeight: 1.6 }}>
-          {feedback.map((item, index) => (
+          {feedback && feedback.map((item, index) => (
             <li key={index} style={{ marginBottom: 10 }}>
               {item}
             </li>
           ))}
         </ul>
       </div>
+
+      {/* ✅ ADD: AI Analysis Details */}
+      {hasAiAnalysis && detailedAnalysis && detailedAnalysis.length > 0 && (
+        <div style={{ 
+          textAlign: 'left',
+          marginBottom: 30,
+          border: '1px solid #ddd',
+          borderRadius: 8,
+          padding: 20,
+          backgroundColor: '#f8f9fa'
+        }}>
+          <h3>🤖 AI-Powered Analysis</h3>
+          
+          {detailedAnalysis.map((analysis, index) => (
+            <div key={index} style={{ 
+              marginBottom: 20,
+              padding: 15,
+              border: '1px solid #e0e0e0',
+              borderRadius: 5,
+              backgroundColor: 'white'
+            }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>
+                Question {index + 1}
+              </h4>
+              
+              {/* Strengths */}
+              {analysis.llmFeedback?.strengths?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <strong style={{ color: '#28a745' }}>✅ Strengths:</strong>
+                  <ul style={{ margin: '5px 0', paddingLeft: 20 }}>
+                    {analysis.llmFeedback.strengths.map((strength, idx) => (
+                      <li key={idx} style={{ fontSize: 14, marginBottom: 3 }}>
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Improvements */}
+              {analysis.llmFeedback?.improvement_tips?.length > 0 && (
+                <div>
+                  <strong style={{ color: '#007bff' }}>💡 Tips:</strong>
+                  <ul style={{ margin: '5px 0', paddingLeft: 20 }}>
+                    {analysis.llmFeedback.improvement_tips.map((tip, idx) => (
+                      <li key={idx} style={{ fontSize: 14, marginBottom: 3 }}>
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ 

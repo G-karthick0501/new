@@ -7,11 +7,13 @@ const cors = require("cors");
 const authRoutes = require("./src/routes/auth");
 const codingRoutes = require("./src/routes/coding");
 const resumeRoutes = require("./src/routes/resume"); 
+const interviewRoutes = require("./src/routes/interview");  
 
 const app = express();
 
 app.use(cors());
 app.use(express.json()); // parse JSON request bodies
+app.use("/api/interview", interviewRoutes);                
 
 app.use(cors({
   origin: [

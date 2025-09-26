@@ -24,7 +24,7 @@ async def analyze_resume(resume_file: UploadFile = File(...), jd_file: UploadFil
     similarity_matrix = cs.compute_similarity(resume_embeds, jd_embeds)
     before_metrics = cs.compute_missing(similarity_matrix, resume_chunks, jd_chunks)
 
-    # Gemini-based optimization
+    # Enhanced RAG optimization
     gemini_output = optimizer.optimize_resume(clean_resume, clean_jd, before_metrics)
 
     # Compute after metrics

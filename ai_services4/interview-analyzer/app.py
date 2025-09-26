@@ -15,6 +15,10 @@ class QAItem(BaseModel):
 class QARequest(BaseModel):
     items: List[QAItem]
 
+@app.get("/")
+async def root():
+    return {"message": "Interview Analyzer API is running"}
+
 @app.post("/analyze")
 async def analyze(request: QARequest):
     try:

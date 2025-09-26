@@ -6,6 +6,11 @@ import ResumeOptimizer from "./candidate/ResumeOptimizer";
 import CodeEditor from '../components/coding/CodeEditor';
 import { codingService } from '../services/codingService';
 
+import InterviewStart from '../components/interview/InterviewStart';
+import InterviewSession from '../components/interview/InterviewSession';
+import InterviewResults from '../components/interview/InterviewResults';
+import { useInterview } from '../hooks/useInterview';
+
 export default function CandidateDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -114,29 +119,59 @@ function CandidateOverview() {
 }
 
 function MockInterview() {
-  return (
-    <div>
-      <h2>Mock Interview Practice</h2>
-      <div style={{ marginBottom: 20 }}>
-        <h3>Choose Interview Type:</h3>
-        <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-          <button style={{ padding: '15px 30px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: 5 }}>
-            Technical Interview
-          </button>
-          <button style={{ padding: '15px 30px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: 5 }}>
-            Behavioral Interview
-          </button>
-          <button style={{ padding: '15px 30px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: 5 }}>
-            HR Round
-          </button>
-        </div>
-      </div>
-      <div>
-        <h3>Recent Sessions</h3>
-        <p style={{ color: '#6c757d' }}>No interview sessions yet. Start your first practice session!</p>
-      </div>
-    </div>
-  );
+  // ✅ ENHANCEMENT: Use interview hook
+  const interview = useInterview();
+  const [interviewPhase, setInterviewPhase] = useState('start'); // 'start', 'session', 'results'
+  
+  // ✅ ENHANCEMENT: Handle interview start with questionCount
+  const handleInterviewStart = async (interviewType, questionCount) => {
+    await interview.startInterview(interviewType, questionCount);
+    if (interview.questions && interview.questions.length > 0) {
+      setInterviewPhase('session');
+    }
+  };
+
+  // ✅ ENHANCEMENT: Handle interview completion
+  const handleInterviewComplete = async () => {
+    await interview.completeInterview();
+    setInterviewPhase('results');
+  };
+
+  // ✅ ENHANCEMENT: Handle restart
+  const handleRestart = () => {
+    interview.resetInterview();
+    setInterviewPhase('start');
+  };
+
+  // ✅ ENHANCEMENT: Render different phases
+  if (interviewPhase === 'start') {
+    return (
+      <InterviewStart 
+        onStart={handleInterviewStart}
+        isLoading={interview.isLoading}
+      />
+    );
+  }
+  
+  if (interviewPhase === 'session') {
+    return (
+      <InterviewSession 
+        interview={interview}
+        onComplete={handleInterviewComplete}
+      />
+    );
+  }
+  
+  if (interviewPhase === 'results') {
+    return (
+      <InterviewResults 
+        results={interview.results}
+        onRestart={handleRestart}
+      />
+    );
+  }
+
+  return null;
 }
 
 function CodingPractice() {
