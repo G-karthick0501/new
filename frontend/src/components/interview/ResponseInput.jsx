@@ -1,5 +1,7 @@
-// frontend/src/components/interview/ResponseInput.jsx - FIXED
-import { useState, useEffect } from 'react';
+// frontend/src/components/interview/ResponseInput.jsx - UPDATED with API_BASE + Speech-to-Text
+import { useState, useEffect, useRef } from 'react';
+
+const API_BASE = "http://localhost:5000/api"; // ✅ Centralized API base
 
 export default function ResponseInput({ 
   currentResponse, 
@@ -7,21 +9,71 @@ export default function ResponseInput({
   onSubmit, 
   isLastQuestion,
   isLoading,
-  questionIndex // ADD THIS PROP
+  questionIndex 
 }) {
   const [response, setResponse] = useState('');
   const [startTime] = useState(Date.now());
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const audioChunksRef = useRef([]);
 
-  // FIXED: Reset textarea when question changes
+  // Reset textarea when question changes
   useEffect(() => {
     setResponse(currentResponse || '');
-  }, [currentResponse, questionIndex]); // ADD questionIndex dependency
+  }, [currentResponse, questionIndex]);
+
+  // Start/stop recording
+  const toggleRecording = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          audioChunksRef.current = [];
+
+          // Send blob to backend
+          const formData = new FormData();
+          formData.append("file", blob, "response.webm");
+
+          try {
+            const res = await fetch(`${API_BASE}/resume/transcribe`, {  // ✅ Uses API_BASE
+              method: "POST",
+              body: formData
+            });
+            const data = await res.json();
+            if (data.text) {
+              setResponse((prev) => prev + " " + data.text);
+              onResponseChange((response || "") + " " + data.text);
+            }
+          } catch (err) {
+            console.error("❌ Transcription failed:", err);
+          }
+        };
+
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Mic access denied:", err);
+        alert("Microphone permission required for speech-to-text");
+      }
+    } else {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
 
   const handleSubmit = () => {
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
     onSubmit(response, timeSpent);
-    
-    // CLEAR the textarea after submitting
     setResponse('');
   };
 
@@ -42,7 +94,7 @@ export default function ResponseInput({
             setResponse(e.target.value);
             onResponseChange(e.target.value);
           }}
-          placeholder="Type your answer here... Take your time and be as detailed as possible."
+          placeholder="Type or speak your answer here..."
           style={{
             width: '100%',
             minHeight: 150,
@@ -54,6 +106,24 @@ export default function ResponseInput({
             resize: 'vertical'
           }}
         />
+      </div>
+
+      {/* Mic Button */}
+      <div style={{ marginBottom: 15 }}>
+        <button
+          onClick={toggleRecording}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: isRecording ? '#dc3545' : '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: 5,
+            cursor: 'pointer',
+            fontSize: 14
+          }}
+        >
+          {isRecording ? 'Stop Recording 🔴' : 'Start Recording 🎤'}
+        </button>
       </div>
       
       <div style={{ 
