@@ -4,6 +4,8 @@ import { useState } from 'react';
 export default function InterviewStart({ onStart, isLoading }) {
   const [selectedType, setSelectedType] = useState('technical');
   const [questionCount, setQuestionCount] = useState(5);
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
 
   const questionOptions = [
     { value: 3, label: '3 questions', description: 'Quick practice (5-10 mins)' },
@@ -12,8 +14,13 @@ export default function InterviewStart({ onStart, isLoading }) {
     { value: 10, label: '10 questions', description: 'Comprehensive (25-30 mins)' }
   ];
 
-  const handleStart = () => {
-    onStart(selectedType, questionCount);
+  const handleStart = async () => {
+    try {
+      onStart(selectedType, questionCount);
+    } catch (err) {
+      setHasPermission(false);
+      console.error('Camera permission denied:', err);
+    }
   };
 
   return (
@@ -98,6 +105,8 @@ export default function InterviewStart({ onStart, isLoading }) {
       </div>
       
       {/* ✅ ENHANCED: Start Button */}
+      
+
       <button
         onClick={handleStart}
         disabled={isLoading}
@@ -114,6 +123,7 @@ export default function InterviewStart({ onStart, isLoading }) {
       >
         {isLoading ? 'Starting Interview...' : `Start ${selectedType} Interview (${questionCount} questions)`}
       </button>
+      
       
       {/* ✅ ENHANCED: Updated expectations */}
       <div style={{ 

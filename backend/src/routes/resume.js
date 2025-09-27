@@ -1,13 +1,17 @@
+// routes/resume.js
 const express = require("express");
 const multer = require("multer");
+const fs = require("fs");
+const OpenAI = require("openai");
 const auth = require("../middleware/auth");
 const axios = require("axios");
 const FormData = require("form-data");
-
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Test endpoint (keep working)
+// ========================= RESUME ROUTES =========================
+
+// Test endpoint for resume upload
 router.post("/test-upload", auth, upload.fields([
   { name: 'resume', maxCount: 1 },
   { name: 'jobDescription', maxCount: 1 }
@@ -15,14 +19,14 @@ router.post("/test-upload", auth, upload.fields([
   try {
     const resume = req.files.resume?.[0];
     const jd = req.files.jobDescription?.[0];
-    
+
     if (!resume || !jd) {
       return res.status(400).json({ msg: "Both files required" });
     }
-    
+
     console.log("Resume file:", resume.originalname, resume.size);
     console.log("JD file:", jd.originalname, jd.size);
-    
+
     res.json({
       success: true,
       resumeSize: resume.size,
@@ -44,10 +48,10 @@ router.post("/analyze", auth, upload.fields([
 ]), async (req, res) => {
   try {
     console.log("🎯 Analyze endpoint called!");
-    
+
     const resume = req.files.resume?.[0];
     const jd = req.files.jobDescription?.[0];
-    
+
     if (!resume || !jd) {
       return res.status(400).json({ msg: "Both files required" });
     }
@@ -76,35 +80,21 @@ router.post("/analyze", auth, upload.fields([
 
     console.log("✅ AI service responded successfully");
 
-    // Extract actual data without artificial scoring
     const missingSkills = aiResponse.data.missing_skills || [];
     const improvementTips = aiResponse.data.improvement_tips || [];
     const optimizedResume = aiResponse.data.optimized_resume_text || '';
 
-    console.log(`📊 Raw analysis results:`);
-    console.log(`- Missing Skills: ${missingSkills.length}`);
-    console.log(`- Improvement Tips: ${improvementTips.length}`);
-    console.log(`- Optimized Resume: ${optimizedResume.length} characters`);
-
-    // Return simple, honest response
     res.json({
       success: true,
       analysis: {
-        // Raw counts
         missingSkillsCount: missingSkills.length,
         improvementTipsCount: improvementTips.length,
-        
-        // Actual data
-        missingSkills: missingSkills,
-        improvementTips: improvementTips,
-        optimizedResume: optimizedResume,
-        
-        // Metadata
+        missingSkills,
+        improvementTips,
+        optimizedResume,
         analysisDate: new Date(),
         resumeFileName: resume.originalname,
         jdFileName: jd.originalname,
-        
-        // Raw AI response for debugging (optional)
         debug: {
           beforeChunks: aiResponse.data.before_missing_chunks?.length || 0,
           afterChunks: aiResponse.data.after_missing_chunks?.length || 0
@@ -114,13 +104,40 @@ router.post("/analyze", auth, upload.fields([
 
   } catch (error) {
     console.error("❌ Analyze error:", error.message);
-    
-    res.status(500).json({ 
-      msg: "Analysis failed", 
+
+    res.status(500).json({
+      msg: "Analysis failed",
       details: error.message,
       hint: "Check backend and AI service logs for details"
     });
   }
+});
+
+// ========================= TRANSCRIBE ROUTES =========================
+
+
+// POST /api/resume/transcribe
+router.post("/transcribe", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No audio file uploaded" });
+
+    const formData = new FormData();
+    formData.append("file", req.file.buffer, "response.webm");
+
+    const response = await axios.post("http://localhost:8000/transcribe", formData, {
+      headers: formData.getHeaders(),
+    });
+
+    res.json({ text: response.data.text });
+  } catch (err) {
+    console.error("Transcription error:", err.message);
+    res.status(500).json({ error: "Transcription failed", details: err.message });
+  }
+});
+
+// GET test endpoint for transcribe
+router.get("/transcribe/test", (req, res) => {
+  res.json({ message: "Transcribe route works" });
 });
 
 module.exports = router;
