@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import ResumeOptimizer from "./candidate/ResumeOptimizer";
+import ResumeAnalyzer from "../components/candidate/ResumeAnalyzer/ResumeAnalyzer";
+
 import CodeEditor from '../components/coding/CodeEditor';
 import { codingService } from '../services/codingService';
 
@@ -78,7 +79,7 @@ export default function CandidateDashboard() {
       {/* Content Area */}
       <div style={{ minHeight: 400 }}>
         {activeTab === 'overview' && <CandidateOverview />}
-        {activeTab === 'resume' && <ResumeOptimizer />}
+        {activeTab === 'resume' && <ResumeAnalyzer />}
         {activeTab === 'interview' && <MockInterview />}
         {activeTab === 'coding' && <CodingPractice />}
         {activeTab === 'jobs' && <JobApplications />}

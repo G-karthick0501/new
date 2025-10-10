@@ -1,4 +1,4 @@
-// frontend/src/services/api/resumeAnalysisApi.js
+// frontend/src/services/api/resumeAnalysisApi.js - UPDATED for two-step flow
 
 const API_BASE = "http://localhost:5000/api";
 
@@ -58,15 +58,17 @@ export const resumeAnalysisService = {
     };
   },
 
-  // Analyze resume
-  async analyzeResume(resumeFile, jdFile) {
+  // ============================================
+  // 🆕 STEP 1: Analyze Initial (Get Missing Skills)
+  // ============================================
+  async analyzeInitial(resumeFile, jdFile) {
     const token = localStorage.getItem('token');
     const formData = new FormData();
     
     formData.append('resume', resumeFile);
     formData.append('jobDescription', jdFile);
 
-    const response = await fetch(`${API_BASE}/resume/analyze`, {
+    const response = await fetch(`${API_BASE}/resume/analyze-initial`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -76,9 +78,56 @@ export const resumeAnalysisService = {
 
     const data = await response.json();
     
+    if (!response.ok) {
+      throw new Error(data.msg || data.details || 'Analysis failed');
+    }
+    
     return {
       success: response.ok,
+      sessionId: data.sessionId,
+      analysis: data.analysis,
       ...data
     };
+  },
+
+  // ============================================
+  // 🆕 STEP 2: Generate Optimized Resume (With Selected Skills)
+  // ============================================
+  async generateOptimized(sessionId, selectedSkills) {
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(`${API_BASE}/resume/generate-optimized`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sessionId,
+        selectedSkills
+      })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.msg || data.details || 'Optimization failed');
+    }
+    
+    return {
+      success: response.ok,
+      optimization: data.optimization,
+      ...data
+    };
+  },
+
+  // ============================================
+  // 🔧 LEGACY: Old analyze method (kept for backward compatibility)
+  // ============================================
+  async analyzeResume(resumeFile, jdFile) {
+    console.warn('⚠️  analyzeResume() is deprecated. Use analyzeInitial() + generateOptimized() instead.');
+    
+    // For now, just call analyzeInitial
+    return this.analyzeInitial(resumeFile, jdFile);
   }
 };
