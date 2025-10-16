@@ -9,7 +9,7 @@ import Login from "./pages/Login.jsx";
 import CandidateDashboard from "./pages/CandidateDashboard.jsx";
 import HRDashboard from "./pages/HRDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
-import ResumeAnalyzerPage from "./pages/ResumeAnalyzerPage.jsx";
+
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -52,14 +52,7 @@ function AppContent() {
           } 
         />
 
-        <Route 
-          path="/resume-analyzer" 
-          element={
-            <ProtectedRoute requiredRoles={['candidate']}>
-              <ResumeAnalyzerPage />
-            </ProtectedRoute>
-          } 
-        />
+        
 
         {/* Legacy dashboard route - redirects based on role */}
         <Route 
