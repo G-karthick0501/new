@@ -18,9 +18,10 @@ export default function JobApplications() {
     try {
       const res = await fetch(`${API_BASE}/api/jobs`);
       const data = await res.json();
-      setJobs(data);
+      setJobs(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
+      setJobs([]);
     }
   };
 
@@ -31,19 +32,20 @@ export default function JobApplications() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      setApplications(data);
+      setApplications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch applications:', error);
+      setApplications([]);
     }
   };
 
   const handleApply = async (jobId) => {
-    try {
-      if (!resumeFile) {
-        alert('Please select a resume file');
-        return;
-      }
+    if (!resumeFile) {
+      alert('Please select a resume file');
+      return;
+    }
 
+    try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('resume', resumeFile);
@@ -70,11 +72,13 @@ export default function JobApplications() {
   };
 
   const hasApplied = (jobId) => {
-    return applications.some(app => app.jobId._id === jobId);
+    if (!Array.isArray(applications)) return false;
+    return applications.some(app => app?.jobId?._id === jobId);
   };
 
   const deleteApplication = async (appId) => {
     if (!confirm('Delete this application?')) return;
+    
     try {
       const token = localStorage.getItem('token');
       await fetch(`${API_BASE}/api/applications/${appId}`, {
@@ -96,91 +100,75 @@ export default function JobApplications() {
           <div key={job._id} style={{ padding: 20, border: '1px solid #ddd', borderRadius: 8 }}>
             <h3>{job.title}</h3>
             <p>{job.description}</p>
-            <p>
-              <strong>Location:</strong> {job.location} | <strong>Salary:</strong> {job.salary}
-            </p>
-            <p>
-              <strong>Skills:</strong>{' '}
-              {Array.isArray(job.skills) ? job.skills.join(', ') : job.skills}
-            </p>
+            <p><strong>Location:</strong> {job.location} | <strong>Salary:</strong> {job.salary}</p>
+            <p><strong>Skills:</strong> {Array.isArray(job.skills) ? job.skills.join(', ') : job.skills}</p>
 
-            {job.jdFileName && (
-              <a
-                href={`${API_BASE}/api/jobs/${job._id}/download-jd`}
-                download
-                style={{
-                  display: 'inline-block',
-                  marginTop: 10,
-                  padding: '8px 16px',
-                  background: '#17a2b8',
-                  color: 'white',
-                  borderRadius: 5,
-                  textDecoration: 'none'
-                }}
-              >
-                📄 Download Job Description
-              </a>
-            )}
+            <div style={{ marginTop: 15, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {job.jdFileName && (
+                <a
+                  href={`${API_BASE}/api/jobs/${job._id}/download-jd`}
+                  download
+                  style={{
+                    padding: '8px 16px',
+                    background: '#17a2b8',
+                    color: 'white',
+                    borderRadius: 5,
+                    textDecoration: 'none'
+                  }}
+                >
+                  📄 Download Job Description
+                </a>
+              )}
 
-            {hasApplied(job._id) ? (
-              <span style={{ color: 'green', fontWeight: 'bold', marginLeft: 15 }}>
-                ✅ Applied
-              </span>
-            ) : selectedJob === job._id ? (
-              <div style={{ marginTop: 15 }}>
+              {hasApplied(job._id) ? (
+                <span style={{ color: 'green', fontWeight: 'bold', padding: '8px' }}>
+                  ✅ Applied
+                </span>
+              ) : (
+                <button
+                  onClick={() => setSelectedJob(selectedJob === job._id ? null : job._id)}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 5,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {selectedJob === job._id ? 'Cancel' : 'Apply Now'}
+                </button>
+              )}
+            </div>
+
+            {selectedJob === job._id && (
+              <div style={{ marginTop: 15, padding: 15, background: '#f8f9fa', borderRadius: 5 }}>
                 <input
                   type="file"
+                  accept=".pdf"
                   onChange={(e) => setResumeFile(e.target.files[0])}
-                  style={{ width: '100%', padding: 10, marginBottom: 10 }}
+                  style={{ width: '100%', padding: 8, marginBottom: 10 }}
                 />
-
                 <textarea
                   placeholder="Cover Letter (optional)"
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
-                  style={{ width: '100%', padding: 10, minHeight: 100, marginBottom: 10 }}
+                  style={{ width: '100%', padding: 8, minHeight: 80, marginBottom: 10 }}
                 />
-
                 <button
                   onClick={() => handleApply(job._id)}
                   style={{
-                    padding: '10px 20px',
+                    padding: '8px 16px',
                     background: '#28a745',
                     color: 'white',
                     border: 'none',
                     borderRadius: 5,
-                    marginRight: 10
+                    cursor: 'pointer'
                   }}
                 >
-                  Submit Application
-                </button>
-                <button
-                  onClick={() => setSelectedJob(null)}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 5
-                  }}
-                >
-                  Cancel
+                  Submit
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setSelectedJob(job._id)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 5,
-                  marginTop: 10
-                }}
-              >
-                Apply Now
-              </button>
             )}
           </div>
         ))}
@@ -188,8 +176,7 @@ export default function JobApplications() {
 
       {applications.length > 0 && (
         <div style={{ marginTop: 40 }}>
-          <h3>My Applications</h3>
-
+          <h3>📋 My Applications</h3>
           {applications.map(app => (
             <div
               key={app._id}
@@ -204,34 +191,50 @@ export default function JobApplications() {
               }}
             >
               <div>
-                <strong>{app.jobId.title}</strong>
+                <strong>{app?.jobId?.title || 'Unknown Job'}</strong>
                 <span
                   style={{
                     marginLeft: 15,
-                    padding: '4px 12px',
-                    background: app.status === 'pending' ? '#ffc107' : '#28a745',
+                    padding: '4px 10px',
+                    background: app.status === 'pending' ? '#ffc107' : app.status === 'shortlisted' ? '#17a2b8' : app.status === 'accepted' ? '#28a745' : '#dc3545',
                     color: 'white',
                     borderRadius: 12,
                     fontSize: 12
                   }}
                 >
-                  {app.status}
+                  {app.status?.toUpperCase()}
                 </span>
               </div>
-
-              <button
-                onClick={() => deleteApplication(app._id)}
-                style={{
-                  padding: '6px 12px',
-                  background: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 5,
-                  cursor: 'pointer'
-                }}
-              >
-                🗑️ Delete
-              </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {app.resumeFileName && (
+                  <a
+                    href={`${API_BASE}/api/applications/download-resume/${app._id}`}
+                    download
+                    style={{
+                      padding: '6px 12px',
+                      background: '#17a2b8',
+                      color: 'white',
+                      borderRadius: 5,
+                      textDecoration: 'none'
+                    }}
+                  >
+                    📄 Resume
+                  </a>
+                )}
+                <button
+                  onClick={() => deleteApplication(app._id)}
+                  style={{
+                    padding: '6px 12px',
+                    background: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 5,
+                    cursor: 'pointer'
+                  }}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { downloadFile } from '../../utils/downloadHelper';
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -40,7 +39,6 @@ export default function CandidateManagement() {
     }
   };
 
-  // 🗑️ DELETE application
   const deleteApplication = async (appId) => {
     if (!confirm('Delete this application?')) return;
 
@@ -53,6 +51,30 @@ export default function CandidateManagement() {
       fetchApplications();
     } catch (error) {
       console.error('Delete failed:', error);
+    }
+  };
+
+  const downloadResume = async (appId, filename) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/applications/download-resume/${appId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || 'resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Download failed');
     }
   };
 
@@ -71,17 +93,10 @@ export default function CandidateManagement() {
                   <h3>{app.candidateId?.name}</h3>
                   <p><strong>Email:</strong> {app.candidateId?.email}</p>
                   <p><strong>Job:</strong> {app.jobId?.title}</p>
-
-                  {/* Resume download button */}
                   <p>
                     <strong>Resume:</strong>
                     <button
-                      onClick={() =>
-                        downloadFile(
-                          `${API_BASE}/api/applications/${app._id}/download-resume`,
-                          app.resumeFileName || 'resume.pdf'
-                        )
-                      }
+                      onClick={() => downloadResume(app._id, app.resumeFileName)}
                       style={{
                         marginLeft: 10,
                         padding: '5px 10px',
@@ -96,28 +111,26 @@ export default function CandidateManagement() {
                       📥 Download
                     </button>
                   </p>
-
                   {app.coverLetter && <p><strong>Cover Letter:</strong> {app.coverLetter}</p>}
                   <p><strong>Applied:</strong> {new Date(app.createdAt).toLocaleDateString()}</p>
                 </div>
 
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <select
                     value={app.status}
                     onChange={(e) => updateStatus(app._id, e.target.value)}
-                    style={{ padding: '8px 12px', borderRadius: 5, marginBottom: 10 }}
+                    style={{ padding: '8px 12px', borderRadius: 5 }}
                   >
                     <option value="pending">Pending</option>
                     <option value="reviewed">Reviewed</option>
                     <option value="shortlisted">Shortlisted</option>
                     <option value="rejected">Rejected</option>
-                    <option value="test_sent">Test Sent</option>
+                    <option value="accepted">Accepted</option>
                   </select>
 
                   <button
                     onClick={() => deleteApplication(app._id)}
                     style={{
-                      display: 'block',
                       padding: '6px 12px',
                       background: '#dc3545',
                       color: 'white',
