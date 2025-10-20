@@ -1,4 +1,7 @@
 # app.py
+import os
+os.environ["USE_TF"] = "0"
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict, Any

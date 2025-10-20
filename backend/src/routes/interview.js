@@ -8,7 +8,7 @@ const axios = require('axios');
 
 const router = express.Router();
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 const AI_SERVICE_TIMEOUT = 180000; // 180 seconds
 
 // Start new interview

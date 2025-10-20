@@ -1,41 +1,42 @@
+// frontend/src/components/interview/WebcamRecorder.jsx
 import { useRef, useState, useEffect } from 'react';
-import * as tf from '@tensorflow/tfjs';
-
+import * as faceapi from 'face-api.js';
 
 const Timer = ({ isRecording }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
-  
+
   useEffect(() => {
     let interval;
     if (isRecording) {
-      interval = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
     }
     return () => clearInterval(interval);
   }, [isRecording]);
-  
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   return <div className="timer">{formatTime(elapsedTime)}</div>;
 };
 
-export default function WebcamRecorder({ isRecording, onFrameCaptured }) {
+export default function WebcamRecorder({ isRecording }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const [model, setModel] = useState(null);
+  const [expressions, setExpressions] = useState(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
 
-  // Load TF.js FER model once
+  // Load face-api.js models
   useEffect(() => {
-    const loadModel = async () => {
-      const loadedModel = await tf.loadLayersModel('/tfjs_model/model.json');
-      setModel(loadedModel);
+    const loadModels = async () => {
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await faceapi.nets.faceExpressionNet.loadFromUri('/models');
+      setModelsLoaded(true);
+      console.log('Face-api.js models loaded!');
     };
-    loadModel();
+    loadModels();
   }, []);
 
   useEffect(() => {
@@ -43,24 +44,21 @@ export default function WebcamRecorder({ isRecording, onFrameCaptured }) {
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
 
-        // Capture frames periodically
-        interval = setInterval(() => {
-          if (videoRef.current && model && onFrameCaptured) {
-            const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoRef.current, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        interval = setInterval(async () => {
+          if (!videoRef.current.paused && modelsLoaded) {
+            const detection = await faceapi
+              .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 }))
+              .withFaceExpressions();
 
-            // Send imageData to parent for preprocessing + prediction
-            onFrameCaptured(imageData);
+            if (detection) {
+              setExpressions(detection.expressions);
+            }
           }
-        }, 1000); // 1 frame per second
+        }, 500); // detect every 0.5s
       } catch (err) {
         console.error('Error accessing camera', err);
       }
@@ -68,7 +66,7 @@ export default function WebcamRecorder({ isRecording, onFrameCaptured }) {
 
     if (isRecording) startCamera();
     else {
-      // Stop camera
+      // Stop camera when not recording
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
@@ -83,7 +81,7 @@ export default function WebcamRecorder({ isRecording, onFrameCaptured }) {
       }
       clearInterval(interval);
     };
-  }, [isRecording, model, onFrameCaptured]);
+  }, [isRecording, modelsLoaded]);
 
   return (
     <div style={{
@@ -95,10 +93,20 @@ export default function WebcamRecorder({ isRecording, onFrameCaptured }) {
       background: '#000',
       borderRadius: '8px',
       overflow: 'hidden',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+      boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+      color: '#fff',
+      padding: '5px'
     }}>
       <video ref={videoRef} autoPlay muted style={{ width: '100%', display: 'block' }} />
       <Timer isRecording={isRecording} />
+
+      <div style={{ marginTop: 5, fontSize: 12 }}>
+        {expressions
+          ? Object.entries(expressions).map(([emotion, score]) => (
+              <div key={emotion}>{emotion}: {(score * 100).toFixed(1)}%</div>
+            ))
+          : 'Emotion: Detecting...'}
+      </div>
     </div>
   );
 }

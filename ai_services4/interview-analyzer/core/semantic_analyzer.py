@@ -1,4 +1,7 @@
 # core/semantic_analyzer.py
+import os
+os.environ["TRANSFORMERS_NO_TF_IMPORT"] = "1"
+
 from sentence_transformers import SentenceTransformer, util
 from functools import lru_cache
 import hashlib
