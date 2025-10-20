@@ -10,6 +10,7 @@ import CandidateDashboard from "./pages/CandidateDashboard.jsx";
 import HRDashboard from "./pages/HRDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 
+
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
 
@@ -50,6 +51,8 @@ function AppContent() {
             </ProtectedRoute>
           } 
         />
+
+        
 
         {/* Legacy dashboard route - redirects based on role */}
         <Route 
