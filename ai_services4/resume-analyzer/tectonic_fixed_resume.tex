@@ -1,0 +1,179 @@
+
+%-------------------------
+% Resume in LaTeX (Tectonic compatible)
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{fontawesome5}
+
+% Commented out problematic glyphtounicode for Tectonic
+% \input{glyphtounicode}
+
+% Font setup — Roboto often causes errors in Tectonic, use default sans-serif
+\renewcommand{\familydefault}{\sfdefault}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-0.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-6pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape G. Karthick} \\ \vspace{3pt}
+    \small Pune, Maharashtra | 
+    \href{tel:7824034918}{7824034918} $|$ 
+    \href{mailto:0105karthick@gmail.com}{\underline{0105karthick@gmail.com}} $|$ 
+    \href{https://github.com/G-karthick0501}{\underline{GitHub}} $|$
+    \href{https://linkedin.com}{\underline{LinkedIn}}
+\end{center}
+
+%-----------SUMMARY-----------
+\vspace{-8pt}
+\begin{center}
+    \small{Final-year Computer Science student with hands-on experience in DevOps engineering, CI/CD automation, container orchestration, and full-stack development. Proficient in building production-grade applications with Docker, Kubernetes, GitHub Actions, and Infrastructure as Code. Strong foundation in C++, Python, OOP concepts, and Linux system administration.}
+\end{center}
+
+%-----------EDUCATION-----------
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Symbiosis Institute of Technology}{Pune, Maharashtra}
+      {Bachelor of Technology in Computer Science Engineering}{May 2022 -- May 2026}
+  \resumeSubHeadingListEnd
+
+%-----------TECHNICAL SKILLS-----------
+\section{Technical Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Languages}{: C++, Python, JavaScript, Java, SQL, Bash/Shell Scripting, HTML/CSS} \\
+     \textbf{DevOps \& Cloud}{: Docker, Kubernetes, GitHub Actions, Ansible, Jenkins (familiar), GitLab CI/CD (familiar)} \\
+     \textbf{Backend \& Databases}{: Node.js, Express, Python FastAPI, RESTful APIs, MongoDB, MySQL} \\
+     \textbf{Tools \& Platforms}{: Git/GitHub, Linux/Unix, Postman, VS Code, Prometheus, Grafana, PM2}
+    }}
+ \end{itemize}
+
+%-----------PROJECTS-----------
+\section{Projects}
+    \resumeSubHeadingListStart
+    
+      \resumeProjectHeading
+          {\textbf{Devcruite - Enterprise DevOps Platform} $|$ \href{https://github.com/G-karthick0501/devops_trail}{\underline{GitHub}}}{}
+          \resumeItemListStart
+            \resumeItem{Architected production-ready CI/CD pipelines using GitHub Actions with automated builds, testing, and Docker image deployment across 4 workflow files (backend, frontend, full-stack, docker-compose integration)}
+            \resumeItem{Containerized complete microservices application using Docker and docker-compose, orchestrating 5+ services including Node.js backend, React frontend, MongoDB, Prometheus, and Grafana with health checks and restart policies}
+            \resumeItem{Deployed scalable Kubernetes cluster with 12+ manifests (deployments, services, ConfigMaps, secrets, PVCs, namespaces) implementing rolling updates, readiness/liveness probes, and zero-downtime deployments with 2-replica high availability}
+            \resumeItem{Automated infrastructure configuration with Ansible playbooks for server provisioning, Node.js installation, user management, and PM2 process management on Linux/Unix systems}
+            \resumeItem{Implemented monitoring stack with Prometheus metrics collection and Grafana dashboards for real-time application health tracking}
+            \resumeItem{\textbf{Tech:} Docker, Kubernetes, GitHub Actions, Ansible, Node.js, React, MongoDB, Python FastAPI, Prometheus, Grafana}
+          \resumeItemListEnd
+          
+      \resumeProjectHeading
+          {\textbf{Hospital Management System} $|$ \href{https://github.com}{\underline{GitHub}}}{}
+          \resumeItemListStart
+            \resumeItem{Developed object-oriented hospital management application in Java with role-based access control for doctors, nurses, administrators, and receptionists using OOP principles (inheritance, polymorphism, encapsulation)}
+            \resumeItem{Designed normalized relational database schema with JDBC for transaction management, implementing CRUD operations across 8+ interconnected entities with prepared statements for SQL injection prevention}
+            \resumeItem{\textbf{Tech:} Java, JDBC, MySQL, OOP Design Patterns, Swing GUI}
+          \resumeItemListEnd
+          
+      \resumeProjectHeading
+          {\textbf{IncuSight - ML Prediction Platform}}{}
+          \resumeItemListStart
+            \resumeItem{Built Flask-based startup success prediction platform with scikit-learn ML models and Power BI dashboards}
+            \resumeItem{Implemented RESTful API endpoints with SQLite persistence and role-based authentication workflows}
+            \resumeItem{\textbf{Tech:} Python, Flask, scikit-learn, SQLite, Power BI}
+          \resumeItemListEnd
+          
+    \resumeSubHeadingListEnd
+
+%-----------EXPERIENCE-----------
+\section{Experience}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Data Analysis Intern}{April 2025 -- July 2025}
+      {Renu Sharma Healthcare and Education Foundation}{Remote}
+      \resumeItemListStart
+        \resumeItem{Automated CSR data collection pipeline using Python scripts and Google Search APIs, processing 500+ company reports with PDF text extraction and structured data parsing}
+        \resumeItem{Performed data analysis on company initiatives using Python libraries (pandas, numpy) to identify trends for stakeholder reporting and content strategy optimization}
+      \resumeItemListEnd
+  \resumeSubHeadingListEnd
+
+%-----------CERTIFICATIONS-----------
+\section{Certifications \& Additional Skills}
+ \begin{itemize}[leftmargin=0.15in, label=$\bullet$]
+    \small{\item{FREE OpenCV Bootcamp -- OpenCV University (Python Computer Vision)}}
+    \small{\item{Intro to Machine Learning -- Kaggle}}
+    \small{\item{Introduction to Python -- DataCamp}}
+    \small{\item{Version Control: Git workflow, branching strategies, pull requests, code reviews}}
+    \small{\item{Problem Solving: Data Structures (arrays, linked lists, trees), Algorithms (sorting, searching, DP)}}
+ \end{itemize}
+
+%-------------------------------------------
+\end{document}

@@ -1,327 +1,278 @@
 // frontend/src/components/candidate/ResumeAnalyzer/ResumeAnalyzer.jsx
-
-import React, { useState } from 'react';
-import { useResumeAnalysis } from '../../../hooks/useResumeAnalysis';
+import { useState } from 'react';
 import FileUpload from './FileUpload';
 import SkillSelectionModal from './SkillSelectionModal';
 import DiffViewer from './DiffViewer';
+import { useResumeAnalysis } from '../../../hooks/useResumeAnalysis';
 
 export default function ResumeAnalyzer() {
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
 
   const {
-    // State
-    sessionId,
-    missingSkills,
-    improvementTips,
-    optimizedResume,
-    selectedSkills,
-    originalResume,
-    loading,
-    error,
-    uploadStatus,
-    currentStep,
-
-    // Methods
-    analyzeInitial,
+    analyzeResume,
     generateOptimized,
+    generatePDF,
     toggleSkill,
     selectAllSkills,
     deselectAllSkills,
-    startOver,
-
-    // Computed
-    selectedSkillsCount,
-    totalSkillsCount
+    handleCancelSkillSelection,
+    currentStep,
+    missingSkills,
+    selectedSkills,
+    improvementTips,
+    optimizedResume,
+    originalResume, // ✅ ADD THIS
+    loading,
+    error,
+    uploadStatus,
+    selectedSkillsCount
   } = useResumeAnalysis();
 
-  // ============================================
-  // FILE HANDLERS
-  // ============================================
-
-  const handleFilesSelected = (type, file) => {
-    if (type === 'resume') {
-      setResumeFile(file);
-    } else if (type === 'jd') {
-      setJdFile(file);
+  const handleAnalyze = async () => {
+    if (!resumeFile || !jdFile) {
+      alert('Please upload both files');
+      return;
     }
+    await analyzeResume(resumeFile, jdFile);
   };
 
-  // ============================================
-  // TEST CONNECTION HANDLER
-  // ============================================
+  const handleContinueWithSkills = async () => {
+    await generateOptimized(resumeFile, jdFile);
+  };
+
+  const handleDownload = () => {
+    if (!optimizedResume) return;
+    
+    const blob = new Blob([optimizedResume], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'optimized_resume.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
 
   const handleTestConnection = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-
-      formData.append('resume', resumeFile);
-      formData.append('jobDescription', jdFile);
-
-      const response = await fetch('http://localhost:5000/api/resume/test-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const data = await response.json();
-
+      const response = await fetch('http://localhost:8000/docs');
       if (response.ok) {
-        alert(
-          `✅ Connection Test Successful!\n\nResume: ${data.resumeName} (${(data.resumeSize / 1024).toFixed(1)} KB)\nJD: ${data.jdName} (${(data.jdSize / 1024).toFixed(1)} KB)`
-        );
+        alert('✅ Connection successful! AI service is running.');
       } else {
-        alert('❌ Connection test failed: ' + (data.msg || 'Unknown error'));
+        alert('⚠️ AI service responded but with an error.');
       }
     } catch (err) {
-      alert(
-        '❌ Cannot reach backend!\n\nError: ' +
-          err.message +
-          '\n\nMake sure:\n1. Backend is running (npm start)\n2. AI service is running (uvicorn app:app --reload)\n3. Port 5000 is accessible'
-      );
+      alert('❌ Cannot connect to AI service. Make sure it\'s running on port 8000.');
     }
   };
-
-  // ============================================
-  // ANALYZE HANDLER
-  // ============================================
-
-  const handleAnalyze = async () => {
-    const result = await analyzeInitial(resumeFile, jdFile);
-    if (result) {
-      console.log('Analysis complete:', result);
-    }
-  };
-
-  // ============================================
-  // SKILL SELECTION HANDLERS
-  // ============================================
-
-  const handleContinueWithSkills = async () => {
-    const result = await generateOptimized();
-    if (result) {
-      console.log('Optimization complete:', result);
-    }
-  };
-
-  const handleCancelSkillSelection = () => {
-    startOver();
-    setResumeFile(null);
-    setJdFile(null);
-  };
-
-  // ============================================
-  // RENDER
-  // ============================================
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>📄 Resume Analyzer</h1>
+      <div style={styles.card}>
+        <h2 style={styles.title}>AI Resume Analyzer & Optimizer</h2>
         <p style={styles.description}>
-          Upload your resume and job description to get personalized optimization suggestions
+          Upload your resume and a job description to get AI-powered optimization suggestions
         </p>
-      </div>
 
-      {/* STEP 1: UPLOAD */}
-      {currentStep === 'upload' && (
-        <>
-          <FileUpload
-            onFilesSelected={handleFilesSelected}
-            resumeFile={resumeFile}
-            jdFile={jdFile}
-            disabled={loading}
-          />
-
-          {uploadStatus && (
-            <div style={styles.statusBox}>
-              <p style={styles.statusText}>{uploadStatus}</p>
-            </div>
-          )}
-
-          {error && (
-            <div style={styles.errorBox}>
-              <p style={styles.errorText}>❌ {error}</p>
-            </div>
-          )}
-
-          <div style={styles.buttonContainer}>
-            <button
-              onClick={handleTestConnection}
-              disabled={!resumeFile || !jdFile || loading}
-              style={{
-                ...styles.button,
-                ...styles.secondaryButton,
-                opacity: (!resumeFile || !jdFile || loading) ? 0.5 : 1,
-                cursor: (!resumeFile || !jdFile || loading) ? 'not-allowed' : 'pointer'
+        {/* STEP 1: FILE UPLOAD */}
+        {currentStep === 'upload' && (
+          <>
+            <FileUpload
+              resumeFile={resumeFile}
+              jdFile={jdFile}
+              onFilesSelected={(type, file) => {
+                if (type === 'resume') setResumeFile(file);
+                else if (type === 'jd') setJdFile(file);
               }}
-            >
-              🔌 Test Connection
-            </button>
-
-            <button
-              onClick={handleAnalyze}
-              disabled={!resumeFile || !jdFile || loading}
-              style={{
-                ...styles.button,
-                ...styles.primaryButton,
-                opacity: (!resumeFile || !jdFile || loading) ? 0.5 : 1,
-                cursor: (!resumeFile || !jdFile || loading) ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? (
-                <>
-                  <span style={styles.spinner}>⏳</span> Analyzing...
-                </>
-              ) : (
-                <>🔍 Analyze Resume</>
-              )}
-            </button>
-          </div>
-
-          <div style={styles.instructions}>
-            <h3 style={styles.instructionsTitle}>How it works:</h3>
-            <ol style={styles.instructionsList}>
-              <li>Upload your current resume (PDF)</li>
-              <li>Upload the job description you're targeting (PDF)</li>
-              <li>
-                <strong>Test Connection</strong> (optional) - Verify backend connectivity
-              </li>
-              <li>
-                <strong>Analyze Resume</strong> - AI identifies missing skills
-              </li>
-              <li>Select which skills you want to add</li>
-              <li>Get your optimized resume instantly!</li>
-            </ol>
-          </div>
-        </>
-      )}
-
-      {/* STEP 2: SKILL SELECTION */}
-      {currentStep === 'skillSelection' && (
-        <SkillSelectionModal
-          missingSkills={missingSkills}
-          selectedSkills={selectedSkills}
-          onToggleSkill={toggleSkill}
-          onSelectAll={selectAllSkills}
-          onDeselectAll={deselectAllSkills}
-          onContinue={handleContinueWithSkills}
-          onCancel={handleCancelSkillSelection}
-          loading={loading}
-        />
-      )}
-
-      {/* STEP 3: RESULTS */}
-      {currentStep === 'results' && (
-        <div style={styles.resultsContainer}>
-          <div style={styles.resultsHeader}>
-            <h2 style={styles.resultsTitle}>✅ Resume Optimized!</h2>
-            <p style={styles.resultsSubtitle}>
-              Successfully added {selectedSkillsCount} skill
-              {selectedSkillsCount !== 1 ? 's' : ''} to your resume
-            </p>
-          </div>
-
-          {originalResume && optimizedResume && (
-            <DiffViewer
-              originalText={originalResume}
-              optimizedText={optimizedResume}
-              addedSkills={selectedSkills}
             />
-          )}
 
-          {improvementTips.length > 0 && (
-            <div style={styles.tipsSection}>
-              <h3 style={styles.sectionTitle}>💡 Improvement Tips</h3>
-              <ul style={styles.tipsList}>
-                {improvementTips.map((tip, index) => (
-                  <li key={index} style={styles.tipItem}>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
+            {uploadStatus && (
+              <div style={styles.statusBox}>
+                <p style={styles.statusText}>{uploadStatus}</p>
+              </div>
+            )}
+
+            {error && (
+              <div style={styles.errorBox}>
+                <p style={styles.errorText}>❌ {error}</p>
+              </div>
+            )}
+
+            <div style={styles.buttonContainer}>
+              <button
+                onClick={handleTestConnection}
+                style={{
+                  ...styles.button,
+                  ...styles.secondaryButton,
+                  cursor: 'pointer'
+                }}
+              >
+                🔌 Test Connection
+              </button>
+
+              <button
+                onClick={handleAnalyze}
+                disabled={!resumeFile || !jdFile || loading}
+                style={{
+                  ...styles.button,
+                  ...styles.primaryButton,
+                  opacity: (!resumeFile || !jdFile || loading) ? 0.5 : 1,
+                  cursor: (!resumeFile || !jdFile || loading) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span style={styles.spinner}>⏳</span> Analyzing...
+                  </>
+                ) : (
+                  <>🔍 Analyze Resume</>
+                )}
+              </button>
             </div>
-          )}
 
-          <div style={styles.resumeSection}>
-            <h3 style={styles.sectionTitle}>📄 Your Optimized Resume</h3>
-            <div style={styles.resumePreview}>
-              <pre style={styles.resumeText}>{optimizedResume}</pre>
+            <div style={styles.instructions}>
+              <h3 style={styles.instructionsTitle}>How it works:</h3>
+              <ol style={styles.instructionsList}>
+                <li>Upload your current resume (PDF)</li>
+                <li>Upload the job description you're targeting (PDF)</li>
+                <li>
+                  <strong>Test Connection</strong> (optional) - Verify backend connectivity
+                </li>
+                <li>
+                  <strong>Analyze Resume</strong> - AI identifies missing skills
+                </li>
+                <li>Select which skills you want to add</li>
+                <li>Get your optimized resume instantly!</li>
+              </ol>
+            </div>
+          </>
+        )}
+
+        {/* STEP 2: SKILL SELECTION */}
+        {currentStep === 'skillSelection' && (
+          <SkillSelectionModal
+            missingSkills={missingSkills}
+            selectedSkills={selectedSkills}
+            onToggleSkill={toggleSkill}
+            onSelectAll={selectAllSkills}
+            onDeselectAll={deselectAllSkills}
+            onContinue={handleContinueWithSkills}
+            onCancel={handleCancelSkillSelection}
+            loading={loading}
+          />
+        )}
+
+        {/* STEP 3: RESULTS */}
+        {currentStep === 'results' && (
+          <div style={styles.resultsContainer}>
+            <div style={styles.resultsHeader}>
+              <h2 style={styles.resultsTitle}>✅ Resume Optimized!</h2>
+              <p style={styles.resultsSubtitle}>
+                Successfully added {selectedSkillsCount} skill
+                {selectedSkillsCount !== 1 ? 's' : ''} to your resume
+              </p>
+            </div>
+
+            {/* ✅ ADD DIFF VIEWER */}
+            {originalResume && optimizedResume && (
+              <DiffViewer
+                originalText={originalResume}
+                optimizedText={optimizedResume}
+                addedSkills={selectedSkills}
+              />
+            )}
+
+            {improvementTips.length > 0 && (
+              <div style={styles.tipsSection}>
+                <h3 style={styles.sectionTitle}>💡 Improvement Tips</h3>
+                <ul style={styles.tipsList}>
+                  {improvementTips.map((tip, idx) => (
+                    <li key={idx} style={styles.tipItem}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div style={styles.resumeSection}>
+              <h3 style={styles.sectionTitle}>📄 Optimized Resume</h3>
+              <div style={styles.resumePreview}>
+                <pre style={styles.resumeText}>{optimizedResume}</pre>
+              </div>
+            </div>
+
+            <div style={styles.resultsActions}>
+              <button
+                onClick={handleDownload}
+                style={{
+                  ...styles.button,
+                  ...styles.primaryButton
+                }}
+              >
+                📥 Download Optimized Resume
+              </button>
+
+              <button
+                onClick={async () => {
+                  const success = await generatePDF();
+                  if (success) {
+                    alert('✅ PDF downloaded successfully!');
+                  }
+                }}
+                disabled={loading}
+                style={{
+                  ...styles.button,
+                  ...styles.secondaryButton,
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? '⏳ Generating PDF...' : '📄 Download as PDF'}
+              </button>
+
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  ...styles.button,
+                  backgroundColor: '#6c757d',
+                  color: 'white'
+                }}
+              >
+                🔄 Start Over
+              </button>
             </div>
           </div>
-
-          <div style={styles.resultsActions}>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(optimizedResume);
-                alert('✅ Copied to clipboard!');
-              }}
-              style={{ ...styles.button, ...styles.secondaryButton }}
-            >
-              📋 Copy to Clipboard
-            </button>
-
-            <button
-              onClick={() => {
-                const blob = new Blob([optimizedResume], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'optimized_resume.txt';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              style={{ ...styles.button, ...styles.secondaryButton }}
-            >
-              💾 Download Resume
-            </button>
-
-            <button
-              onClick={() => {
-                startOver();
-                setResumeFile(null);
-                setJdFile(null);
-              }}
-              style={{ ...styles.button, ...styles.primaryButton }}
-            >
-              🔄 Start New Analysis
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-// ============================================
-// STYLES
-// ============================================
-
 const styles = {
   container: {
-    maxWidth: 1200,
-    margin: '0 auto',
-    padding: 40
+    padding: 20,
+    maxWidth: 1200, // Wider for diff viewer
+    margin: '0 auto'
   },
-  header: {
-    textAlign: 'center',
-    marginBottom: 40
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 40,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
   },
   title: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 700,
+    textAlign: 'center',
     color: '#333',
     margin: '0 0 10px'
   },
   description: {
     fontSize: 18,
     color: '#666',
-    margin: 0
+    margin: '0 0 30px',
+    textAlign: 'center'
   },
   statusBox: {
     padding: 20,

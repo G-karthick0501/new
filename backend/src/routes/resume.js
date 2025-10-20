@@ -428,4 +428,144 @@ router.post("/analyze", auth, upload.fields([
   }
 });
 
+router.post("/download-pdf", auth, async (req, res) => {
+  try {
+    const { sessionId, selectedSkills } = req.body;
+    
+    console.log("📥 PDF download requested");
+    
+    const session = getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ msg: "Session expired or not found" });
+    }
+    
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append('resume_file', session.resumeBuffer, {
+      filename: session.resumeFilename,
+      contentType: session.resumeMimetype
+    });
+    formData.append('jd_file', session.jdBuffer, {
+      filename: session.jdFilename,
+      contentType: session.jdMimetype
+    });
+    formData.append('selected_skills', JSON.stringify(selectedSkills));
+    
+    console.log("🤖 Calling AI service for PDF generation...");
+    
+    // Call Python PDF endpoint
+    const response = await axios.post(
+      'http://localhost:8000/optimize-with-skills-pdf',
+      formData,
+      {
+        headers: formData.getHeaders(),
+        responseType: 'arraybuffer', // CRITICAL: Get binary PDF data
+        timeout: 120000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      }
+    );
+    
+    console.log(`✅ PDF received: ${response.data.length} bytes`);
+    
+    // Send PDF to frontend
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename=optimized_resume.pdf',
+      'Content-Length': response.data.length
+    });
+    
+    res.send(Buffer.from(response.data));
+    
+  } catch (error) {
+    console.error("❌ PDF download error:", error.message);
+    
+    if (error.code === 'ECONNREFUSED') {
+      return res.status(503).json({ 
+        msg: "AI service unavailable",
+        hint: "Ensure Python service is running on http://localhost:8000"
+      });
+    }
+    
+    res.status(500).json({ 
+      msg: "PDF generation failed", 
+      error: error.message 
+    });
+  }
+});
+
+// ============================================
+// 🆕 DOWNLOAD LATEX PDF
+// ============================================
+// backend/src/routes/resume.js
+
+// Add this route AFTER the existing routes
+
+// 🆕 LATEX PDF DOWNLOAD
+router.post("/download-latex-pdf", auth, async (req, res) => {
+  try {
+    const { sessionId, selectedSkills } = req.body;
+    
+    console.log("📥 LaTeX PDF download requested");
+    
+    const session = getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ msg: "Session expired or not found" });
+    }
+    
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append('resume_file', session.resumeBuffer, {
+      filename: session.resumeFilename,
+      contentType: session.resumeMimetype
+    });
+    formData.append('jd_file', session.jdBuffer, {
+      filename: session.jdFilename,
+      contentType: session.jdMimetype
+    });
+    formData.append('selected_skills', JSON.stringify(selectedSkills));
+    
+    console.log("🤖 Calling AI service for LaTeX PDF generation...");
+    
+    // Call Python LaTeX PDF endpoint
+    const response = await axios.post(
+      'http://localhost:8000/optimize-with-skills-latex-pdf',
+      formData,
+      {
+        headers: formData.getHeaders(),
+        responseType: 'arraybuffer',
+        timeout: 120000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      }
+    );
+    
+    console.log(`✅ LaTeX PDF received: ${response.data.length} bytes`);
+    
+    // Send PDF to frontend
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename=optimized_resume_latex.pdf',
+      'Content-Length': response.data.length
+    });
+    
+    res.send(Buffer.from(response.data));
+    
+  } catch (error) {
+    console.error("❌ LaTeX PDF download error:", error.message);
+    
+    if (error.code === 'ECONNREFUSED') {
+      return res.status(503).json({ 
+        msg: "AI service unavailable",
+        hint: "Ensure Python service is running on http://localhost:8000"
+      });
+    }
+    
+    res.status(500).json({ 
+      msg: "LaTeX PDF generation failed", 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;
