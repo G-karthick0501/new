@@ -42,7 +42,18 @@ async def analyze_skills(resume_file: UploadFile = File(...), jd_file: UploadFil
         missing_skills = optimizer.extract_missing_skills(clean_resume, clean_jd, before_metrics)
         improvement_tips = optimizer.generate_improvement_tips(before_metrics)
 
-        print(f"✅ Missing skills: {len(missing_skills)}")
+        # ✅ ADD THESE METRICS
+        total_jd_chunks = len(jd_chunks)
+        missing_chunks_count = len(before_metrics.get("missing_chunks", []))
+        matched_chunks = total_jd_chunks - missing_chunks_count
+        
+        # Real cosine-based match score
+        match_score = matched_chunks / total_jd_chunks if total_jd_chunks > 0 else 0
+
+        print(f"✅ Analysis complete:")
+        print(f"   Total JD chunks: {total_jd_chunks}")
+        print(f"   Missing chunks: {missing_chunks_count}")
+        print(f"   Match score: {match_score:.2f}")
 
         return {
             "success": True,
@@ -50,13 +61,18 @@ async def analyze_skills(resume_file: UploadFile = File(...), jd_file: UploadFil
             "improvement_tips": improvement_tips,
             "before_missing_chunks": before_metrics.get("missing_chunks", []),
             "original_resume_text": original_resume_text,
+            
+            # ✅ NEW FIELDS
+            "total_jd_chunks": total_jd_chunks,
+            "missing_chunks_count": missing_chunks_count,
+            "match_score": round(match_score, 4),
+            
             "message": "Analysis complete"
         }
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         return {"success": False, "error": str(e), "missing_skills": [], "improvement_tips": []}
-
 
 # ============================================
 # ENDPOINT 2: OPTIMIZE (Text for UI)
