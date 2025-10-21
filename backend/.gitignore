@@ -58,3 +58,34 @@ obj/
 # Other
 coverage/
 .cache
+
+
+
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Test files
+*.test.pdf
+*.test.tex
+test-files/
+tectonic_fixed_*
+
+# LaTeX temporary files
+*.aux
+*.log
+*.out
+
+# Package files (Python projects)
+ai_services4/**/package-lock.json
+
+# Generated resumes
+*_generated_resume.*

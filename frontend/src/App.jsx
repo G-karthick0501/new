@@ -9,6 +9,7 @@ import Login from "./pages/Login.jsx";
 import CandidateDashboard from "./pages/CandidateDashboard.jsx";
 import HRDashboard from "./pages/HRDashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import NotificationBell from "./components/shared/NotificationBell.jsx";
 
 
 function AppContent() {
@@ -152,6 +153,7 @@ function Navigation({ user, isAuthenticated }) {
             </span>
           </>
         )}
+        {isAuthenticated && <NotificationBell />}
       </nav>
     </div>
   );

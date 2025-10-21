@@ -1,9 +1,10 @@
-// frontend/src/hooks/useResumeAnalysis.js - UPDATED for two-step flow
+// frontend/src/hooks/useResumeAnalysis.js - COMPLETE with PDF Generation
 
 import { useState, useEffect } from 'react';
 import { resumeAnalysisService } from '../services/api/resumeAnalysisApi';
 
 const STORAGE_KEY = 'resumeAnalysisState';
+const AI_SERVICE_BASE = 'http://localhost:8000'; // FastAPI AI service
 
 export function useResumeAnalysis() {
   const [sessionId, setSessionId] = useState(null);
@@ -18,9 +19,13 @@ export function useResumeAnalysis() {
 
   const [currentStep, setCurrentStep] = useState('upload'); // upload, skillSelection, results
 
-  const [originalResume, setOriginalResume] = useState(''); // 🆕 ADD THIS
-  const [resumeFileName, setResumeFileName] = useState(''); // 🆕 ADD THIS
-  const [jdFileName, setJdFileName] = useState(''); // 🆕 ADD THIS
+  const [originalResume, setOriginalResume] = useState('');
+  const [resumeFileName, setResumeFileName] = useState('');
+  const [jdFileName, setJdFileName] = useState('');
+  
+  // Store files for PDF generation
+  const [resumeFile, setResumeFile] = useState(null);
+  const [jdFile, setJdFile] = useState(null);
 
   // Load saved state on component mount
   useEffect(() => {
@@ -40,170 +45,169 @@ export function useResumeAnalysis() {
           if (savedState.improvementTips) setImprovementTips(savedState.improvementTips);
           if (savedState.optimizedResume) setOptimizedResume(savedState.optimizedResume);
           if (savedState.selectedSkills) setSelectedSkills(savedState.selectedSkills);
+          if (savedState.originalResume) setOriginalResume(savedState.originalResume);
           if (savedState.currentStep) setCurrentStep(savedState.currentStep);
-          
-          setUploadStatus('✅ Session restored from previous session');
-        } else {
-          // Clear old data
-          localStorage.removeItem(STORAGE_KEY);
         }
       }
     } catch (err) {
-      console.error('Error loading saved state:', err);
-      localStorage.removeItem(STORAGE_KEY);
+      console.error('Failed to load saved state:', err);
     }
   }, []);
 
-  // Save state to localStorage whenever it changes
+  // Save state whenever it changes
   useEffect(() => {
-    if (sessionId || missingSkills.length > 0) {
+    if (sessionId) {
       const stateToSave = {
         sessionId,
         missingSkills,
         improvementTips,
         optimizedResume,
         selectedSkills,
+        originalResume,
         currentStep,
-        uploadStatus,
         timestamp: new Date().toISOString()
       };
-      
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-      } catch (err) {
-        console.error('Error saving state:', err);
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
     }
-  }, [sessionId, missingSkills, improvementTips, optimizedResume, selectedSkills, currentStep, uploadStatus]);
+  }, [sessionId, missingSkills, improvementTips, optimizedResume, selectedSkills, originalResume, currentStep]);
 
   // ============================================
-  // 🆕 STEP 1: Analyze Initial (Get Missing Skills)
+  // ANALYZE RESUME (Step 1)
   // ============================================
-  const analyzeInitial = async (resumeFile, jdFile) => {
-    if (!resumeFile || !jdFile) {
-      setError('Please select both resume and job description files');
-      return false;
-    }
-
-    // Validate files
-    const resumeErrors = resumeAnalysisService.validateFile(resumeFile);
-    const jdErrors = resumeAnalysisService.validateFile(jdFile);
-    
-    if (resumeErrors.length > 0 || jdErrors.length > 0) {
-      setError([...resumeErrors, ...jdErrors].join(', '));
-      return false;
-    }
-
+  const analyzeResume = async (resumeFileArg, jdFileArg) => {
     setLoading(true);
     setError(null);
-    setUploadStatus('📤 Uploading files and analyzing...');
-    setCurrentStep('upload');
+    setUploadStatus('📤 Uploading files to AI service...');
 
     try {
-      const result = await resumeAnalysisService.analyzeInitial(resumeFile, jdFile);
-      
-      if (result.success) {
+      // Store files for later PDF generation
+      setResumeFile(resumeFileArg);
+      setJdFile(jdFileArg);
+      setResumeFileName(resumeFileArg.name);
+      setJdFileName(jdFileArg.name);
 
+      // Call AI service directly
+      const formData = new FormData();
+      formData.append('resume_file', resumeFileArg);
+      formData.append('jd_file', jdFileArg);
 
-        setSessionId(result.sessionId);
-        setMissingSkills(result.analysis.missingSkills || []);
-        setImprovementTips(result.analysis.improvementTips || []);
-        
-        // 🆕 ADD THESE LINES - Store file names for later
-        setResumeFileName(result.analysis.resumeFileName || '');
-        setJdFileName(result.analysis.jdFileName || '');
-        
-        // 🆕 ADD THIS - Store original resume text (we'll extract it from AI service response)
-        setOriginalResume(result.analysis.originalResumeText || '');
-        
-        // Pre-select all skills by default
-        setSelectedSkills(result.analysis.missingSkills || []);
-        
-        // Move to skill selection step
-        setCurrentStep('skillSelection');
+      const response = await fetch(`${AI_SERVICE_BASE}/analyze-skills`, {
+        method: 'POST',
+        body: formData
+      });
 
-        // Store analysis results
-        setSessionId(result.sessionId);
-        setMissingSkills(result.analysis.missingSkills || []);
-        setImprovementTips(result.analysis.improvementTips || []);
-        
-        // Pre-select all skills by default
-        setSelectedSkills(result.analysis.missingSkills || []);
-        
-        // Move to skill selection step
-        setCurrentStep('skillSelection');
-        
-        const successMessage = `✅ Analysis complete! Found ${result.analysis.missingSkillsCount} missing skills.`;
-        setUploadStatus(successMessage);
-        
-        return result.analysis;
-      } else {
-        setError('Analysis failed: ' + result.msg);
-        setUploadStatus('❌ Analysis failed');
-        return false;
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Analysis failed');
       }
+
+      setUploadStatus('✅ Analysis complete!');
+      setMissingSkills(data.missing_skills || []);
+      setImprovementTips(data.improvement_tips || []);
+      setOriginalResume(data.original_resume_text || '');
+      
+      // Move to skill selection step
+      setCurrentStep('skillSelection');
+
     } catch (err) {
       console.error('Analysis error:', err);
-      setError('Analysis error: ' + err.message);
-      setUploadStatus('❌ Network error - make sure both backend and AI service are running');
-      
-      if (err.message.includes('AI service unavailable')) {
-        setError('AI service is not running. Please start it with: uvicorn app:app --reload');
-      }
-      
-      return false;
+      setError(err.message || 'Failed to analyze resume');
+      setUploadStatus('');
     } finally {
       setLoading(false);
     }
   };
 
   // ============================================
-  // 🆕 STEP 2: Generate Optimized Resume (With Selected Skills)
+  // GENERATE OPTIMIZED RESUME (Step 2)
   // ============================================
-  const generateOptimized = async () => {
-    if (!sessionId) {
-      setError('No session found. Please analyze your resume first.');
-      return false;
+  const generateOptimized = async (resumeFileArg, jdFileArg) => {
+    if (selectedSkills.length === 0) {
+      setError('Please select at least one skill');
+      return;
     }
 
-    if (!selectedSkills || selectedSkills.length === 0) {
-      setError('Please select at least one skill to add.');
+    setLoading(true);
+    setError(null);
+    setUploadStatus('🤖 AI is optimizing your resume...');
+
+    try {
+      const formData = new FormData();
+      formData.append('resume_file', resumeFileArg);
+      formData.append('jd_file', jdFileArg);
+      formData.append('selected_skills', JSON.stringify(selectedSkills));
+
+      const response = await fetch(`${AI_SERVICE_BASE}/optimize-with-skills`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Optimization failed');
+      }
+
+      setUploadStatus('✅ Resume optimized!');
+      setOptimizedResume(data.optimized_resume_text || '');
+      
+      // Move to results step
+      setCurrentStep('results');
+
+    } catch (err) {
+      console.error('Optimization error:', err);
+      setError(err.message || 'Failed to optimize resume');
+      setUploadStatus('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // GENERATE PDF (Step 3)
+  // ============================================
+  const generatePDF = async () => {
+    if (!resumeFile || !jdFile || selectedSkills.length === 0) {
+      setError('Missing required data for PDF generation');
       return false;
     }
 
     setLoading(true);
     setError(null);
-    setUploadStatus(`🔧 Generating optimized resume with ${selectedSkills.length} selected skills...`);
 
     try {
-      const result = await resumeAnalysisService.generateOptimized(sessionId, selectedSkills);
-      
-      if (result.success) {
-        // Store optimization results
-        setOptimizedResume(result.optimization.optimizedResume);
-        
-        // Move to results step
-        setCurrentStep('results');
-        
-        const successMessage = `✅ Resume optimized! Added ${result.optimization.addedSkills.length} skills.`;
-        setUploadStatus(successMessage);
-        
-        return result.optimization;
-      } else {
-        setError('Optimization failed: ' + result.msg);
-        setUploadStatus('❌ Optimization failed');
-        return false;
+      const formData = new FormData();
+      formData.append('resume_file', resumeFile);
+      formData.append('jd_file', jdFile);
+      formData.append('selected_skills', JSON.stringify(selectedSkills));
+
+      const response = await fetch(`${AI_SERVICE_BASE}/generate-pdf`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'PDF generation failed');
       }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'optimized_resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return true;
+
     } catch (err) {
-      console.error('Optimization error:', err);
-      setError('Optimization error: ' + err.message);
-      setUploadStatus('❌ Failed to generate optimized resume');
-      
-      if (err.message.includes('Session not found')) {
-        setError('Session expired. Please re-upload your files and try again.');
-        setCurrentStep('upload');
-      }
-      
+      console.error('PDF generation error:', err);
+      setError(err.message || 'Failed to generate PDF');
       return false;
     } finally {
       setLoading(false);
@@ -211,7 +215,7 @@ export function useResumeAnalysis() {
   };
 
   // ============================================
-  // 🔧 Skill Selection Helpers
+  // SKILL SELECTION HANDLERS
   // ============================================
   const toggleSkill = (skill) => {
     setSelectedSkills(prev => {
@@ -231,56 +235,34 @@ export function useResumeAnalysis() {
     setSelectedSkills([]);
   };
 
-  const isSkillSelected = (skill) => {
-    return selectedSkills.includes(skill);
+  const handleCancelSkillSelection = () => {
+    setCurrentStep('upload');
+    setSelectedSkills([]);
   };
 
   // ============================================
-  // 🔧 Navigation & State Management
+  // RESET/START OVER
   // ============================================
-  const goBackToSkillSelection = () => {
-    setCurrentStep('skillSelection');
-    setOptimizedResume(null);
-  };
-
   const startOver = () => {
     setSessionId(null);
     setMissingSkills([]);
     setImprovementTips([]);
     setOptimizedResume(null);
     setSelectedSkills([]);
+    setOriginalResume('');
+    setResumeFileName('');
+    setJdFileName('');
+    setResumeFile(null);
+    setJdFile(null);
     setCurrentStep('upload');
     setError(null);
     setUploadStatus('');
-    
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (err) {
-      console.error('Error clearing storage:', err);
-    }
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   // ============================================
-  // 🔧 LEGACY: Old methods (backward compatibility)
+  // RETURN VALUES
   // ============================================
-  const testUpload = async (resumeFile, jdFile) => {
-    console.warn('⚠️  testUpload() is deprecated. Use analyzeInitial() instead.');
-    return analyzeInitial(resumeFile, jdFile);
-  };
-
-  const analyzeResume = async (resumeFile, jdFile) => {
-    console.warn('⚠️  analyzeResume() is deprecated. Use analyzeInitial() + generateOptimized() instead.');
-    return analyzeInitial(resumeFile, jdFile);
-  };
-
-  const clearAnalysis = () => {
-    startOver();
-  };
-
-  const reset = () => {
-    startOver();
-  };
-
   return {
     // State
     sessionId,
@@ -288,43 +270,30 @@ export function useResumeAnalysis() {
     improvementTips,
     optimizedResume,
     selectedSkills,
+    originalResume,
     loading,
     error,
     uploadStatus,
     currentStep,
-    originalResume,  // 🆕 ADD THIS
-    resumeFileName,  // 🆕 ADD THIS
-    jdFileName,      // 🆕 ADD THIS
-    selectedSkills,
-    
-    // Step 1: Analysis
-    analyzeInitial,
-    
-    // Step 2: Optimization
+    resumeFileName,
+    jdFileName,
+
+    // Methods
+    analyzeResume,
     generateOptimized,
-    
-    // Skill Selection
+    generatePDF, // ✅ NEW: PDF generation function
     toggleSkill,
     selectAllSkills,
     deselectAllSkills,
-    isSkillSelected,
-    
-    // Navigation
-    goBackToSkillSelection,
+    handleCancelSkillSelection,
     startOver,
-    
-    // Legacy methods (for backward compatibility)
-    testUpload,
-    analyzeResume,
-    clearAnalysis,
-    reset,
-    
-    // Computed values
+
+    // Computed
+    selectedSkillsCount: selectedSkills.length,
+    totalSkillsCount: missingSkills.length,
     hasSession: !!sessionId,
     hasMissingSkills: missingSkills.length > 0,
     hasOptimizedResume: !!optimizedResume,
-    selectedSkillsCount: selectedSkills.length,
-    totalSkillsCount: missingSkills.length,
     isProcessing: loading
   };
 }

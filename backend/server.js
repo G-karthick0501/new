@@ -8,12 +8,15 @@ const authRoutes = require("./src/routes/auth");
 const codingRoutes = require("./src/routes/coding");
 const resumeRoutes = require("./src/routes/resume"); 
 const interviewRoutes = require("./src/routes/interview");  
-
+const notificationRoutes = require("./src/routes/notifications");
+const jobRoutes = require("./src/routes/jobs");
+const applicationRoutes = require("./src/routes/applications");
 const app = express();
 
 app.use(cors());
 app.use(express.json()); // parse JSON request bodies
-app.use("/api/interview", interviewRoutes);                
+app.use("/api/interview", interviewRoutes);
+app.use("/api/applications", applicationRoutes);
 
 app.use(cors({
   origin: [
@@ -34,6 +37,8 @@ app.use((req, res, next) => {
 app.use("/api/coding", codingRoutes); 
 app.use("/api/resume", resumeRoutes);
 // simple health check
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/jobs", jobRoutes);
 app.get("/", (req, res) => res.send("API up"));
 
 app.use("/api/auth", authRoutes);
