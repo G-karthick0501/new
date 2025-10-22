@@ -58,7 +58,7 @@ export default function JobApplications() {
       });
 
       if (response.ok) {
-        alert('Application submitted!');
+        alert('Application submitted! Calculating match score...');
         setCoverLetter('');
         setResumeFile(null);
         setSelectedJob(null);
@@ -91,6 +91,17 @@ export default function JobApplications() {
     }
   };
 
+  const getStatusColor = (status) => {
+    const colors = {
+      'pending': '#ffc107',
+      'reviewed': '#17a2b8',
+      'shortlisted': '#28a745',
+      'rejected': '#dc3545',
+      'test_sent': '#007bff'
+    };
+    return colors[status] || '#6c757d';
+  };
+
   return (
     <div>
       <h2>🔍 Available Jobs</h2>
@@ -116,7 +127,7 @@ export default function JobApplications() {
                     textDecoration: 'none'
                   }}
                 >
-                  📄 Download Job Description
+                  📄 Download JD
                 </a>
               )}
 
@@ -136,29 +147,31 @@ export default function JobApplications() {
                     cursor: 'pointer'
                   }}
                 >
-                  {selectedJob === job._id ? 'Cancel' : 'Apply Now'}
+                  {selectedJob === job._id ? 'Cancel' : 'Apply'}
                 </button>
               )}
             </div>
 
             {selectedJob === job._id && (
-              <div style={{ marginTop: 15, padding: 15, background: '#f8f9fa', borderRadius: 5 }}>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setResumeFile(e.target.files[0])}
-                  style={{ width: '100%', padding: 8, marginBottom: 10 }}
-                />
-                <textarea
-                  placeholder="Cover Letter (optional)"
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  style={{ width: '100%', padding: 8, minHeight: 80, marginBottom: 10 }}
-                />
+              <div style={{ marginTop: 20, padding: 15, background: '#f8f9fa', borderRadius: 5 }}>
+                <h4>Submit Application</h4>
+                <div style={{ marginBottom: 10 }}>
+                  <label>Resume (PDF):</label>
+                  <input type="file" accept=".pdf" onChange={(e) => setResumeFile(e.target.files[0])} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label>Cover Letter:</label>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    rows={4}
+                    style={{ width: '100%', padding: 8 }}
+                  />
+                </div>
                 <button
                   onClick={() => handleApply(job._id)}
                   style={{
-                    padding: '8px 16px',
+                    padding: '10px 20px',
                     background: '#28a745',
                     color: 'white',
                     border: 'none',
@@ -166,7 +179,7 @@ export default function JobApplications() {
                     cursor: 'pointer'
                   }}
                 >
-                  Submit
+                  Submit Application
                 </button>
               </div>
             )}
@@ -174,71 +187,61 @@ export default function JobApplications() {
         ))}
       </div>
 
-      {applications.length > 0 && (
-        <div style={{ marginTop: 40 }}>
-          <h3>📋 My Applications</h3>
-          {applications.map(app => (
-            <div
-              key={app._id}
-              style={{
-                padding: 15,
-                border: '1px solid #ddd',
-                borderRadius: 8,
-                marginBottom: 10,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
+      <h2 style={{ marginTop: 40 }}>📋 My Applications</h2>
+      <div style={{ display: 'grid', gap: 15 }}>
+        {applications.map(app => (
+          <div key={app._id} style={{ padding: 20, border: '1px solid #ddd', borderRadius: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <strong>{app?.jobId?.title || 'Unknown Job'}</strong>
-                <span
-                  style={{
-                    marginLeft: 15,
-                    padding: '4px 10px',
-                    background: app.status === 'pending' ? '#ffc107' : app.status === 'shortlisted' ? '#17a2b8' : app.status === 'accepted' ? '#28a745' : '#dc3545',
-                    color: 'white',
-                    borderRadius: 12,
-                    fontSize: 12
-                  }}
-                >
-                  {app.status?.toUpperCase()}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                {app.resumeFileName && (
-                  <a
-                    href={`${API_BASE}/api/applications/download-resume/${app._id}`}
-                    download
-                    style={{
-                      padding: '6px 12px',
-                      background: '#17a2b8',
-                      color: 'white',
-                      borderRadius: 5,
-                      textDecoration: 'none'
-                    }}
-                  >
-                    📄 Resume
-                  </a>
-                )}
-                <button
-                  onClick={() => deleteApplication(app._id)}
-                  style={{
-                    padding: '6px 12px',
-                    background: '#dc3545',
-                    color: 'white',
-                    border: 'none',
+                <h3>{app.jobId?.title}</h3>
+                <p><strong>Applied:</strong> {new Date(app.createdAt).toLocaleDateString()}</p>
+                
+                {/* Match Score */}
+                {app.matchScore !== undefined && (
+                  <div style={{ 
+                    marginTop: 10,
+                    padding: '8px 12px',
+                    background: app.matchScore >= 70 ? '#d4edda' : app.matchScore >= 50 ? '#fff3cd' : '#f8d7da',
+                    border: `1px solid ${app.matchScore >= 70 ? '#c3e6cb' : app.matchScore >= 50 ? '#ffeaa7' : '#f5c6cb'}`,
                     borderRadius: 5,
-                    cursor: 'pointer'
-                  }}
-                >
-                  🗑️ Delete
-                </button>
+                    display: 'inline-block'
+                  }}>
+                    <strong>🎯 Match Score:</strong> {app.matchScore}%
+                  </div>
+                )}
+                
+                {/* Status Badge */}
+                <div style={{
+                  marginTop: 10,
+                  padding: '6px 12px',
+                  background: getStatusColor(app.status),
+                  color: 'white',
+                  borderRadius: 5,
+                  display: 'inline-block',
+                  fontSize: 12,
+                  textTransform: 'uppercase'
+                }}>
+                  {app.status}
+                </div>
               </div>
+
+              <button
+                onClick={() => deleteApplication(app._id)}
+                style={{
+                  padding: '8px 16px',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 5,
+                  cursor: 'pointer'
+                }}
+              >
+                🗑️ Delete
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

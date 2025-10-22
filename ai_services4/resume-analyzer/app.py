@@ -8,6 +8,7 @@ import os
 from core import optimizer, chunking_similarity as cs
 from services import preprocessing
 from utils.file_utils import extract_text_from_pdf
+from core import optimizer, chunking_similarity as cs, jd_filter, jd_cache
 
 app = FastAPI(title="Resume Analyzer")
 
@@ -204,6 +205,73 @@ def compile_latex_to_pdf(latex_code: str) -> bytes:
         print(f"📄 PDF size: {len(pdf_bytes)} bytes")
         
         return pdf_bytes
+
+
+
+# ============================================
+# ENDPOINT 4: PREPROCESS JD (NEW)
+# ============================================
+@app.post("/preprocess-jd")
+async def preprocess_jd(jd_file: UploadFile = File(...)):
+    """
+    Preprocess JD once when HR uploads it.
+    Returns filtered JD hash for caching.
+    Called by backend during job creation.
+    """
+    try:
+        print("🎯 /preprocess-jd called")
+        
+        # Step 1: Extract text from JD PDF
+        jd_text = preprocessing.clean_text(extract_text_from_pdf(jd_file))
+        print(f"📄 Extracted JD text: {len(jd_text)} chars")
+        
+        # Step 2: Generate hash for this JD
+        jd_hash = jd_cache.generate_jd_hash(jd_text)
+        print(f"🔑 Generated hash: {jd_hash}")
+        
+        # Step 3: Check if already cached
+        cached_result = jd_cache.get_from_cache(jd_hash)
+        if cached_result:
+            print("✅ Found in cache, returning cached result")
+            return {
+                "success": True,
+                "jd_hash": jd_hash,
+                "from_cache": True,
+                "filtered_length": len(cached_result["filtered_text"]),
+                "stage_used": cached_result["stage_used"]
+            }
+        
+        # Step 4: Apply multi-stage filtering
+        print("🔍 Applying multi-stage filtering...")
+        filter_result = jd_filter.smart_jd_filtering(jd_text)
+        print(f"✅ Filtering complete. Stage used: {filter_result['stage_used']}")
+        
+        # Step 5: Save to cache
+        jd_cache.save_to_cache(jd_hash, filter_result)
+        print(f"💾 Saved to cache with hash: {jd_hash}")
+        
+        # Return response
+        return {
+            "success": True,
+            "jd_hash": jd_hash,
+            "from_cache": False,
+            "original_length": filter_result["stats"]["original_words"],
+            "filtered_length": filter_result["stats"]["after_stage2"],
+            "reduction_percent": filter_result["stats"]["reduction_percentage"],
+            "stage_used": filter_result["stage_used"],
+            "needs_llm": filter_result.get("needs_llm", False)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in preprocess-jd: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 
 
 # ============================================
