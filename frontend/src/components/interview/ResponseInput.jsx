@@ -14,13 +14,32 @@ export default function ResponseInput({
   const [response, setResponse] = useState('');
   const [startTime] = useState(Date.now());
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   // Reset textarea when question changes
   useEffect(() => {
     setResponse(currentResponse || '');
   }, [currentResponse, questionIndex]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Format time display
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Start/stop recording
   const toggleRecording = async () => {
@@ -36,38 +55,59 @@ export default function ResponseInput({
         };
 
         recorder.onstop = async () => {
+          setIsTranscribing(true);
           const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           audioChunksRef.current = [];
+
+          // Stop timer
+          clearInterval(recordingTimerRef.current);
+          setRecordingTime(0);
 
           // Send blob to backend
           const formData = new FormData();
           formData.append("file", blob, "response.webm");
 
           try {
-            const res = await fetch(`${API_BASE}/resume/transcribe`, {  // ✅ Uses API_BASE
+            const res = await fetch(`http://localhost:8001/transcribe`, {  // ✅ interview-analyzer port
               method: "POST",
               body: formData
             });
             const data = await res.json();
-            if (data.text) {
-              setResponse((prev) => prev + " " + data.text);
-              onResponseChange((response || "") + " " + data.text);
+            
+            if (data.success && data.transcription) {
+              const transcribedText = data.transcription.cleaned_text || data.transcription.raw_text;
+              setResponse((prev) => (prev ? prev + " " : "") + transcribedText);
+              onResponseChange((response || "") + " " + transcribedText);
+            } else {
+              alert("Transcription failed: " + (data.error || "Unknown error"));
             }
           } catch (err) {
             console.error("❌ Transcription failed:", err);
+            alert("Failed to transcribe audio. Please try again.");
+          } finally {
+            setIsTranscribing(false);
           }
         };
 
         recorder.start();
         setMediaRecorder(recorder);
         setIsRecording(true);
+        
+        // Start timer
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+        
       } catch (err) {
         console.error("Mic access denied:", err);
         alert("Microphone permission required for speech-to-text");
       }
     } else {
-      mediaRecorder.stop();
-      setIsRecording(false);
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        setIsRecording(false);
+      }
     }
   };
 
@@ -112,18 +152,27 @@ export default function ResponseInput({
       <div style={{ marginBottom: 15 }}>
         <button
           onClick={toggleRecording}
+          disabled={isTranscribing}
           style={{
             padding: '10px 20px',
-            backgroundColor: isRecording ? '#dc3545' : '#6c757d',
+            backgroundColor: isRecording ? '#dc3545' : (isTranscribing ? '#ffc107' : '#6c757d'),
             color: 'white',
             border: 'none',
             borderRadius: 5,
-            cursor: 'pointer',
-            fontSize: 14
+            cursor: isTranscribing ? 'not-allowed' : 'pointer',
+            fontSize: 14,
+            opacity: isTranscribing ? 0.7 : 1
           }}
         >
-          {isRecording ? 'Stop Recording 🔴' : 'Start Recording 🎤'}
+          {isTranscribing ? 'Transcribing... ⏳' : 
+           isRecording ? `Stop Recording 🔴 ${formatTime(recordingTime)}` : 
+           'Start Recording 🎤'}
         </button>
+        {isTranscribing && (
+          <span style={{ marginLeft: 10, color: '#666', fontSize: 14 }}>
+            Please wait while we transcribe your audio...
+          </span>
+        )}
       </div>
       
       <div style={{ 

@@ -5,3 +5,22 @@ python-multipart>=0.0.6
 python-dotenv>=1.0.0
 pydantic>=2.4.2
 starlette>=0.27.0
+nltk
+python-multipart
+dotenv
+
+# Audio processing
+librosa>=0.10.0
+numpy>=1.24.0
+
+# Transcription (install at least one)
+# faster-whisper>=0.9.0  # Recommended - most efficient
+# openai-whisper>=20230314  # Alternative
+# vosk>=0.3.45  # Alternative - lightweight
+# SpeechRecognition>=3.10.0  # Alternative - requires internet
+
+# Emotion Analysis
+deepface>=0.0.79
+opencv-python>=4.8.0
+tensorflow>=2.13.0
+tf-keras>=2.13.0
