@@ -20,6 +20,9 @@ app.get('/', (req, res) => {
 // Resume optimization routes
 app.use('/api/resume', require('./routes/resume'));
 
+app.use('/api/transcribe', require('./routes/transcribe'));
+
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
