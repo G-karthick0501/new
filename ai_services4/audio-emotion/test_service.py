@@ -61,6 +61,36 @@ def test_service(audio_file_path: str, base_url: str = "http://localhost:8001"):
     else:
         print("⚠️  No audio file provided. Skipping audio analysis test.")
     
+    # Add this test after Test 4
+    # Test 5: Long audio analysis
+    print("\n5. Testing long audio analysis with chunking...")
+    if audio_file_path:
+        try:
+            with open(audio_file_path, 'rb') as f:
+                files = {'file': (audio_file_path, f, 'audio/wav')}
+                response = requests.post(
+                    f"{base_url}/analyze-audio-long?remove_silence=true",
+                    files=files
+                )
+            
+            print(f"✅ Status: {response.status_code}")
+            if response.status_code == 200:
+                result = response.json()
+                print(f"\nLong Audio Analysis Results:")
+                print(f"  Dominant Emotion: {result['dominant_emotion']}")
+                print(f"  Avg Confidence: {result['avg_confidence']:.2%}")
+                print(f"  Total Duration: {result['total_duration']:.2f}s")
+                print(f"  Number of Chunks: {result['num_chunks']}")
+                print(f"\n  Emotion Distribution:")
+                for emotion, pct in result['emotion_distribution'].items():
+                    print(f"    {emotion}: {pct:.1f}%")
+            else:
+                print(f"Response: {response.json()}")
+        except Exception as e:
+            print(f"❌ Error: {e}")
+    else:
+        print("⚠️  No audio file provided. Skipping long audio analysis test.")
+    
     print("\n" + "=" * 60)
     print("Testing complete!")
 
