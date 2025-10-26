@@ -1,26 +1,62 @@
-# interview-analyzer requirements (light only)
-fastapi>=0.104.1
-uvicorn>=0.24.0
-python-multipart>=0.0.6
-python-dotenv>=1.0.0
-pydantic>=2.4.2
-starlette>=0.27.0
-nltk
-python-multipart
-dotenv
+# ============================================
+# Interview Analyzer Service - Requirements
+# Port: 8001
+# ============================================
 
-# Audio processing
-librosa>=0.10.0
-numpy>=1.24.0
+# Core Web Framework
+fastapi==0.120.0
+uvicorn==0.38.0
+python-multipart==0.0.20
+python-dotenv==1.1.1
+pydantic==2.12.3
+starlette==0.48.0
 
-# Transcription (install at least one)
-# faster-whisper>=0.9.0  # Recommended - most efficient
-# openai-whisper>=20230314  # Alternative
-# vosk>=0.3.45  # Alternative - lightweight
-# SpeechRecognition>=3.10.0  # Alternative - requires internet
+# Video Emotion Analysis
+opencv-python==4.12.0.88
+deepface==0.0.95
+tensorflow==2.20.0
+tf-keras==2.20.1
+retina-face==0.0.17
+mtcnn==1.0.0
 
-# Emotion Analysis
-deepface>=0.0.79
-opencv-python>=4.8.0
-tensorflow>=2.13.0
-tf-keras>=2.13.0
+# Audio Transcription
+faster-whisper==1.2.0
+ctranslate2==4.6.0
+av==16.0.1
+
+# Audio Processing
+librosa==0.11.0
+soundfile==0.13.1
+audioread==3.0.1
+
+# NLP & Text Analysis
+nltk==3.9.2
+sentence-transformers==5.1.2
+transformers==4.57.1
+
+# ML Frameworks
+torch==2.9.0
+torchaudio==2.9.0
+torchvision==0.24.0
+scikit-learn==1.7.2
+
+# Data Processing
+numpy==2.2.6
+pandas==2.3.3
+
+# Web Scraping & Utilities
+beautifulsoup4==4.14.2
+requests==2.32.5
+Flask==3.1.2
+flask-cors==6.0.1
+
+# Logging & Display
+coloredlogs==15.0.1
+rich==14.2.0
+
+# Utilities
+click==8.3.0
+PyYAML==6.0.3
+
+# Note: Run after installation:
+# python -m nltk.downloader punkt stopwords wordnet

@@ -8,6 +8,22 @@ from typing import Dict
 from config import config
 from emotion_analyzer import get_analyzer
 
+
+# app.py (or main.py)
+
+import nltk
+
+# Automatically download required NLTK data if not already present
+try:
+    nltk.data.find("tokenizers/punkt")
+    nltk.data.find("corpora/stopwords")
+    nltk.data.find("corpora/wordnet")
+except LookupError:
+    nltk.download("punkt")
+    nltk.download("stopwords")
+    nltk.download("wordnet")
+
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
