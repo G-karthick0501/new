@@ -1,311 +1,347 @@
+# ai_services4/audio-emotion/emotion_analyzer.py
 import torch
 import librosa
 import numpy as np
+from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2Processor
+from config import config
 import logging
-import math
-from typing import Dict, Tuple, List
-from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2ForSequenceClassification
-from audio_processor import AudioPreprocessor
-from audio_metrics import AudioMetricsExtractor
+import subprocess
+import tempfile
+import os
 
 logger = logging.getLogger(__name__)
 
 class EmotionAnalyzer:
-    """
-    Audio emotion analyzer using HuggingFace Wav2Vec2 model
-    """
-    
     def __init__(self):
-        """Initialize the model, feature extractor, and metrics extractor"""
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info(f"Using device: {self.device}")
         
-        model_name = "superb/wav2vec2-base-superb-er"
+        logger.info(f"Loading model: {config.MODEL_NAME}")
+        self.model = Wav2Vec2ForSequenceClassification.from_pretrained(config.MODEL_NAME).to(self.device)
+        self.processor = Wav2Vec2Processor.from_pretrained(config.MODEL_NAME)
+        
+        self.id2label = self.model.config.id2label
+        logger.info(f"Model loaded successfully with emotions: {list(self.id2label.values())}")
+    
+    def load_audio(self, audio_path, target_sr=16000):
+        """
+        Load audio file with ffmpeg fallback for WebM and other formats
+        """
         try:
-            logger.info(f"Loading model: {model_name}")
-            self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-            self.model = Wav2Vec2ForSequenceClassification.from_pretrained(model_name)
-            self.model.to(self.device)
-            self.model.eval()
-            
-            self.id2label = self.model.config.id2label
-            logger.info(f"Model loaded successfully with emotions: {list(self.id2label.values())}")
-            
-            # Initialize preprocessor and metrics extractor
-            self.preprocessor = AudioPreprocessor(chunk_duration=5, overlap=0.5)
-            self.metrics_extractor = AudioMetricsExtractor()
-            
-        except Exception as e:
-            logger.error(f"Failed to load model: {str(e)}")
-            raise
-
-    # ------------------- Audio Loading -------------------
-    def load_audio(self, audio_path: str, target_sr: int = 16000) -> Tuple[np.ndarray, int]:
-        try:
+            # Try librosa first
             audio, sr = librosa.load(audio_path, sr=target_sr, mono=True)
-            logger.info(f"Loaded audio: duration={len(audio)/sr:.2f}s, sr={sr}Hz")
             return audio, sr
-        except Exception as e:
-            logger.error(f"Error loading audio: {str(e)}")
-            raise
-
-    # ------------------- Single Prediction -------------------
-    def predict_emotion(self, audio: np.ndarray, sample_rate: int) -> Dict:
+            
+        except Exception as librosa_error:
+            logger.warning(f"librosa failed: {librosa_error}. Trying ffmpeg...")
+            
+            try:
+                # Use ffmpeg to convert to WAV first
+                temp_wav = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
+                temp_wav.close()
+                
+                # Convert using ffmpeg
+                cmd = [
+                    'ffmpeg',
+                    '-i', audio_path,
+                    '-ar', str(target_sr),  # Sample rate
+                    '-ac', '1',              # Mono
+                    '-f', 'wav',             # WAV format
+                    '-y',                    # Overwrite
+                    temp_wav.name
+                ]
+                
+                result = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=30
+                )
+                
+                if result.returncode != 0:
+                    raise RuntimeError(f"ffmpeg failed: {result.stderr.decode()}")
+                
+                # Load the converted file
+                audio, sr = librosa.load(temp_wav.name, sr=target_sr, mono=True)
+                
+                # Clean up
+                os.unlink(temp_wav.name)
+                
+                logger.info(f"Audio loaded successfully via ffmpeg: {audio.shape}")
+                return audio, sr
+                
+            except FileNotFoundError:
+                logger.error("ffmpeg not found. Install ffmpeg: https://ffmpeg.org/download.html")
+                raise RuntimeError(
+                    "ffmpeg is required to process WebM files. "
+                    "Please install ffmpeg: https://ffmpeg.org/download.html"
+                )
+            except Exception as ffmpeg_error:
+                logger.error(f"ffmpeg conversion failed: {ffmpeg_error}")
+                raise RuntimeError(f"Could not load audio file: {ffmpeg_error}")
+    
+    def analyze_emotion(self, audio_path):
+        """
+        Analyze emotion from audio file (basic analysis)
+        """
         try:
-            inputs = self.feature_extractor(
+            # Load audio
+            audio, sr = self.load_audio(audio_path)
+            
+            # Preprocess
+            inputs = self.processor(
                 audio,
-                sampling_rate=sample_rate,
+                sampling_rate=sr,
                 return_tensors="pt",
                 padding=True
             )
-            input_values = inputs.input_values.to(self.device)
-            with torch.no_grad():
-                logits = self.model(input_values).logits
-
-            probs = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()[0]
-            predicted_id = int(np.argmax(probs))
-            confidence = float(probs[predicted_id])
-            predicted_emotion = self.id2label[predicted_id]
             
-            all_scores = {self.id2label[i]: float(probs[i]) for i in range(len(probs))}
+            # Move to device
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            # Predict
+            with torch.no_grad():
+                logits = self.model(**inputs).logits
+            
+            # Get predictions
+            probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+            predicted_id = torch.argmax(probs).item()
+            
+            # Create result
+            result = {
+                "emotion": self.id2label[predicted_id],
+                "confidence": float(probs[predicted_id]),
+                "all_scores": {
+                    self.id2label[i]: float(probs[i])
+                    for i in range(len(probs))
+                }
+            }
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in emotion analysis: {e}", exc_info=True)
+            raise
+    
+    def analyze_emotion_with_chunks(self, audio_path, remove_silence=True):
+        """
+        Analyze emotion from long audio with chunking
+        """
+        try:
+            # Load audio
+            audio, sr = self.load_audio(audio_path)
+            
+            if remove_silence:
+                audio = self._remove_silence(audio, sr)
+            
+            # Split into chunks
+            chunk_duration = 5  # seconds
+            chunk_samples = chunk_duration * sr
+            chunks = []
+            
+            for i in range(0, len(audio), chunk_samples):
+                chunk = audio[i:i + chunk_samples]
+                if len(chunk) > sr:  # At least 1 second
+                    chunks.append(chunk)
+            
+            if not chunks:
+                return self.analyze_emotion(audio_path)
+            
+            # Analyze each chunk
+            chunk_results = []
+            emotion_counts = {}
+            
+            for idx, chunk in enumerate(chunks):
+                try:
+                    inputs = self.processor(
+                        chunk,
+                        sampling_rate=sr,
+                        return_tensors="pt",
+                        padding=True
+                    )
+                    inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                    
+                    with torch.no_grad():
+                        logits = self.model(**inputs).logits
+                    
+                    probs = torch.nn.functional.softmax(logits, dim=-1)[0]
+                    predicted_id = torch.argmax(probs).item()
+                    emotion = self.id2label[predicted_id]
+                    confidence = float(probs[predicted_id])
+                    
+                    chunk_results.append({
+                        "start": idx * chunk_duration,
+                        "end": (idx + 1) * chunk_duration,
+                        "emotion": emotion,
+                        "confidence": confidence
+                    })
+                    
+                    emotion_counts[emotion] = emotion_counts.get(emotion, 0) + 1
+                    
+                except Exception as e:
+                    logger.warning(f"Error processing chunk {idx}: {e}")
+                    continue
+            
+            # Aggregate results
+            if emotion_counts:
+                dominant_emotion = max(emotion_counts, key=emotion_counts.get)
+                avg_confidence = np.mean([c["confidence"] for c in chunk_results])
+            else:
+                dominant_emotion = "neutral"
+                avg_confidence = 0.0
             
             return {
-                "emotion": predicted_emotion,
-                "confidence": confidence,
-                "all_scores": all_scores
+                "emotion": dominant_emotion,
+                "confidence": float(avg_confidence),
+                "all_scores": emotion_counts,
+                "chunks": chunk_results,
+                "total_chunks": len(chunks)
             }
+            
         except Exception as e:
-            logger.error(f"Error predicting emotion: {str(e)}")
+            logger.error(f"Error in chunked analysis: {e}", exc_info=True)
             raise
-
-    # ------------------- Chunked Analysis -------------------
-    def analyze_emotion_with_chunks(self, audio_path: str, remove_silence: bool = True) -> Dict:
-        audio, sr = self.load_audio(audio_path)
-        if len(audio) == 0:
-            raise ValueError("Audio file is empty or corrupted")
-        
-        chunks = self.preprocessor.preprocess(audio, sr, remove_silence)
-        logger.info(f"Processing {len(chunks)} chunks...")
-        
-        chunk_results = []
-        for i, (chunk_audio, start_time) in enumerate(chunks):
-            result = self.predict_emotion(chunk_audio, sr)
-            result.update({
-                "chunk_index": i,
-                "start_time": start_time,
-                "chunk_duration": len(chunk_audio)/sr
-            })
-            chunk_results.append(result)
-        
-        aggregated = self._aggregate_chunk_results(chunk_results)
-        aggregated.update({
-            "total_duration": len(audio)/sr,
-            "sample_rate": sr,
-            "num_chunks": len(chunks),
-            "chunk_results": chunk_results
-        })
-        logger.info(f"Analysis complete: {aggregated['dominant_emotion']} ({aggregated['avg_confidence']:.2%})")
-        return aggregated
-
-    # ------------------- Aggregate Chunks -------------------
-    def _aggregate_chunk_results(self, chunk_results: List[Dict]) -> Dict:
-        emotion_weights = {}
-        total_confidence = 0
-
-        for r in chunk_results:
-            e = r["emotion"]
-            c = r["confidence"]
-            emotion_weights[e] = emotion_weights.get(e, 0) + c
-            total_confidence += c
-
-        emotion_percentages = {e: (w/total_confidence)*100 for e, w in emotion_weights.items()}
-        dominant_emotion = max(emotion_weights, key=emotion_weights.get)
-        dominant_confidences = [r["confidence"] for r in chunk_results if r["emotion"] == dominant_emotion]
-        avg_confidence = float(np.mean(dominant_confidences)) if dominant_confidences else 0
-
-        return {
-            "dominant_emotion": dominant_emotion,
-            "avg_confidence": avg_confidence,
-            "emotion_distribution": emotion_percentages,
-            "emotion_timeline": [
-                {"time": r["start_time"], "emotion": r["emotion"], "confidence": r["confidence"]}
-                for r in chunk_results
-            ]
-        }
-
-    # ------------------- Complete Analysis with Metrics -------------------
-    def analyze_emotion_with_metrics(self, audio_path: str, remove_silence: bool = True) -> Dict:
+    
+    def analyze_emotion_with_metrics(self, audio_path, remove_silence=True):
+        """
+        Complete analysis: emotion + audio metrics
+        """
         try:
-            # Emotion analysis
+            # Get chunked emotion analysis
             emotion_result = self.analyze_emotion_with_chunks(audio_path, remove_silence)
             
-            # Audio metrics (on original audio without silence removal)
+            # Load audio for metrics
             audio, sr = self.load_audio(audio_path)
-            audio_metrics = self.metrics_extractor.extract_all_metrics(audio, sr)
             
-            # Add objective emotion metrics to emotion_result
-            emotion_result = self._add_objective_emotion_metrics(emotion_result)
+            # Calculate audio metrics
+            duration = len(audio) / sr
             
-            # Interpretation
-            interpretation = self._interpret_metrics(emotion_result, audio_metrics)
+            # Estimate speech metrics
+            if remove_silence:
+                audio_clean = self._remove_silence(audio, sr)
+                speech_duration = len(audio_clean) / sr
+            else:
+                speech_duration = duration
+            
+            silence_duration = duration - speech_duration
+            
+            # Estimate speech rate (rough approximation)
+            # Assuming ~150 words per minute on average
+            estimated_words = (speech_duration / 60) * 150
+            speech_rate = estimated_words / (duration / 60) if duration > 0 else 0
+            
+            # Count pauses (silence segments > 0.5s)
+            pause_count = self._count_pauses(audio, sr)
+            avg_pause_duration = silence_duration / pause_count if pause_count > 0 else 0
+            
+            audio_metrics = {
+                "duration": round(duration, 2),
+                "speech_duration": round(speech_duration, 2),
+                "silence_duration": round(silence_duration, 2),
+                "speech_rate": round(speech_rate, 2),
+                "pause_count": pause_count,
+                "avg_pause_duration": round(avg_pause_duration, 2)
+            }
+            
+            # Generate interpretation
+            interpretation = self._generate_interpretation(emotion_result, audio_metrics)
             
             return {
-                "emotion_analysis": emotion_result,
+                **emotion_result,
                 "audio_metrics": audio_metrics,
                 "interpretation": interpretation
             }
+            
         except Exception as e:
-            logger.error(f"Error in complete analysis: {str(e)}")
+            logger.error(f"Error in complete analysis: {e}", exc_info=True)
             raise
-
-    # ------------------- Objective Emotion Metrics -------------------
-    def _add_objective_emotion_metrics(self, emotion_result: Dict) -> Dict:
-        """Add computed objective metrics about emotion stability"""
+    
+    def _remove_silence(self, audio, sr, threshold=0.02):
+        """Remove silent parts from audio"""
         try:
-            timeline = emotion_result.get("emotion_timeline", [])
-            confidences = [x["confidence"] for x in timeline]
-            emotions = [x["emotion"] for x in timeline]
-            
-            if len(emotions) < 2:
-                emotion_result["objective_emotion_metrics"] = {
-                    "emotion_stability": 1.0,
-                    "confidence_std_dev": 0.0,
-                    "emotion_entropy_bits": 0.0,
-                    "dominant_emotion_ratio": 1.0,
-                    "peak_confidence": confidences[0] if confidences else 0.0,
-                    "emotional_shift_duration_sec": 0.0
-                }
-                return emotion_result
-
-            # Emotion switches (how often emotion changes)
-            emotion_switches = sum(1 for i in range(1, len(emotions)) if emotions[i] != emotions[i-1])
-            stability_index = 1 - (emotion_switches / (len(emotions)-1))
-            
-            # Confidence statistics
-            avg_confidence = sum(confidences)/len(confidences)
-            confidence_std = (sum((c - avg_confidence)**2 for c in confidences)/len(confidences))**0.5
-            
-            # Emotion entropy (diversity of emotions)
-            probs = [p/100 for p in emotion_result.get("emotion_distribution", {}).values() if p > 0]
-            entropy = -sum(p*math.log2(p) for p in probs if p > 0)
-            
-            # Dominant emotion ratio
-            dominant = emotion_result.get("dominant_emotion", "unknown")
-            dominant_ratio = sum(1 for e in emotions if e==dominant)/len(emotions)
-            
-            # Peak confidence
-            peak_confidence = max(confidences)
-            
-            # Duration of emotional shift (time from first non-dominant to last)
-            shift_chunks = [t for t in timeline if t["emotion"] != dominant]
-            if len(shift_chunks) >= 2:
-                shift_duration = shift_chunks[-1]["time"] - shift_chunks[0]["time"] + 2.5
-            else:
-                shift_duration = 0.0
-
-            emotion_result["objective_emotion_metrics"] = {
-                "emotion_stability": round(stability_index, 3),
-                "confidence_std_dev": round(confidence_std, 3),
-                "emotion_entropy_bits": round(entropy, 3),
-                "dominant_emotion_ratio": round(dominant_ratio, 3),
-                "peak_confidence": round(peak_confidence, 3),
-                "emotional_shift_duration_sec": round(shift_duration, 2)
-            }
-            
-            return emotion_result
-            
-        except Exception as e:
-            logger.error(f"Error computing objective emotion metrics: {str(e)}")
-            return emotion_result
-
-    # ------------------- Interpretation -------------------
-    def _interpret_metrics(self, emotion_result: Dict, audio_metrics: Dict) -> Dict:
+            # Use librosa's built-in silence removal
+            audio_clean, _ = librosa.effects.trim(audio, top_db=20)
+            return audio_clean
+        except:
+            return audio
+    
+    def _count_pauses(self, audio, sr, min_silence_duration=0.5):
+        """Count pauses in audio"""
         try:
-            interpretation = {}
+            # Simple pause detection
+            frame_length = int(0.1 * sr)  # 100ms frames
+            hop_length = frame_length // 2
             
-            # Get dominant emotion info
-            dominant = emotion_result.get("dominant_emotion", "unknown")
-            avg_confidence = emotion_result.get("avg_confidence", 0)
-
-            # ------------------- Audio signal interpretation -------------------
-            mean_pitch = audio_metrics.get("mean_pitch_hz", 0)
-            if mean_pitch > 0:
-                if mean_pitch < 85:
-                    interpretation["pitch"] = "Very low pitch (bass voice)"
-                elif mean_pitch < 165:
-                    interpretation["pitch"] = "Low pitch (typical male voice)"
-                elif mean_pitch < 255:
-                    interpretation["pitch"] = "Medium pitch (typical female/high male voice)"
+            # Calculate energy
+            energy = np.array([
+                np.sum(audio[i:i+frame_length]**2)
+                for i in range(0, len(audio) - frame_length, hop_length)
+            ])
+            
+            # Threshold
+            threshold = np.mean(energy) * 0.1
+            is_silence = energy < threshold
+            
+            # Count transitions from sound to silence
+            pauses = 0
+            in_silence = False
+            silence_frames = 0
+            min_silence_frames = int(min_silence_duration * sr / hop_length)
+            
+            for silent in is_silence:
+                if silent:
+                    silence_frames += 1
                 else:
-                    interpretation["pitch"] = "High pitch"
-            else:
-                interpretation["pitch"] = "Unable to detect pitch"
-
-            wpm = audio_metrics.get("estimated_wpm", 0)
-            if wpm < 100:
-                interpretation["speaking_rate"] = "Slow pace (deliberate/cautious)"
-            elif wpm < 150:
-                interpretation["speaking_rate"] = "Normal pace"
-            elif wpm < 180:
-                interpretation["speaking_rate"] = "Fast pace (confident/excited)"
-            else:
-                interpretation["speaking_rate"] = "Very fast pace (rushed/anxious)"
-
-            mean_energy = audio_metrics.get("mean_energy_db", -60)
-            if mean_energy > -20:
-                interpretation["volume"] = "Loud/energetic"
-            elif mean_energy > -30:
-                interpretation["volume"] = "Normal volume"
-            else:
-                interpretation["volume"] = "Quiet/soft-spoken"
-
-            speech_ratio = audio_metrics.get("speech_ratio", 0)
-            if speech_ratio > 0.8:
-                interpretation["fluency"] = "High fluency (minimal pauses)"
-            elif speech_ratio > 0.6:
-                interpretation["fluency"] = "Good fluency"
-            else:
-                interpretation["fluency"] = "Many pauses/hesitations"
-
-            # ------------------- Objective emotion metrics interpretation -------------------
-            obj_metrics = emotion_result.get("objective_emotion_metrics", {})
+                    if silence_frames >= min_silence_frames:
+                        pauses += 1
+                    silence_frames = 0
             
-            stability = obj_metrics.get("emotion_stability", 0)
-            if stability > 0.8:
-                interpretation["emotion_consistency"] = "Very stable emotions"
-            elif stability > 0.6:
-                interpretation["emotion_consistency"] = "Moderately stable"
-            else:
-                interpretation["emotion_consistency"] = "Variable emotions (multiple shifts)"
-            
-            entropy = obj_metrics.get("emotion_entropy_bits", 0)
-            if entropy < 0.5:
-                interpretation["emotion_diversity"] = "Single dominant emotion"
-            elif entropy < 1.0:
-                interpretation["emotion_diversity"] = "Low diversity (2 emotions mainly)"
-            else:
-                interpretation["emotion_diversity"] = "High diversity (mixed emotions)"
+            return pauses
+        except:
+            return 0
+    
+    def _generate_interpretation(self, emotion_result, audio_metrics):
+        """Generate human-readable interpretation"""
+        emotion = emotion_result.get("emotion", "neutral")
+        confidence = emotion_result.get("confidence", 0)
+        speech_rate = audio_metrics.get("speech_rate", 0)
+        pause_count = audio_metrics.get("pause_count", 0)
+        
+        interpretation = []
+        
+        # Emotion interpretation
+        if confidence > 0.7:
+            interpretation.append(f"Speaker shows strong {emotion} emotion.")
+        elif confidence > 0.5:
+            interpretation.append(f"Speaker displays moderate {emotion} emotion.")
+        else:
+            interpretation.append(f"Emotion is subtle, leaning towards {emotion}.")
+        
+        # Speech rate interpretation
+        if speech_rate > 160:
+            interpretation.append("Speech rate is fast.")
+        elif speech_rate > 120:
+            interpretation.append("Speech rate is moderate.")
+        else:
+            interpretation.append("Speech rate is slow and deliberate.")
+        
+        # Pause interpretation
+        if pause_count > 5:
+            interpretation.append("Multiple pauses suggest thoughtful consideration.")
+        elif pause_count > 2:
+            interpretation.append("Natural pauses in speech.")
+        else:
+            interpretation.append("Continuous speech with minimal pauses.")
+        
+        return " ".join(interpretation)
 
-            # ------------------- Overall summary -------------------
-            interpretation["overall_summary"] = (
-                f"Primarily {dominant} emotion ({avg_confidence:.1%} confidence), "
-                f"{interpretation.get('speaking_rate', 'normal pace')}, "
-                f"{interpretation.get('volume', 'normal volume')}, "
-                f"{interpretation.get('emotion_consistency', 'stable')}"
-            )
 
-            return interpretation
+# Singleton instance
+_analyzer = None
 
-        except Exception as e:
-            logger.error(f"Error interpreting metrics: {str(e)}")
-            return {"overall_summary": "Unable to interpret metrics"}
-
-
-# ------------------- Singleton -------------------
-_analyzer_instance = None
-
-def get_analyzer() -> EmotionAnalyzer:
-    global _analyzer_instance
-    if _analyzer_instance is None:
-        _analyzer_instance = EmotionAnalyzer()
-    return _analyzer_instance
+def get_analyzer():
+    """Get or create analyzer instance"""
+    global _analyzer
+    if _analyzer is None:
+        _analyzer = EmotionAnalyzer()
+    return _analyzer
