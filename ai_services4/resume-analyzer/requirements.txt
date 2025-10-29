@@ -146,3 +146,11 @@ watchfiles==1.1.0
 wcwidth==0.2.13
 weasel==0.3.4
 websockets==15.0.1
+
+# NLP & ML
+nltk==3.8.1
+spacy==3.7.2
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+sentence-transformers==2.2.2
+transformers==4.33.2
+torch==2.1.0  # Match audio-emotion version
