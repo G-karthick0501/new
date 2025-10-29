@@ -59,6 +59,58 @@ export function useInterview() {
     setIsLoading(false);
   };
 
+  // ✅ NEW: Start interview with dynamic questions
+  const startDynamicInterview = async (interviewType, questionCount, resumeText, jdText = null) => {
+    setIsLoading(true);
+    try {
+      console.log(`🎤 Starting DYNAMIC ${interviewType} interview`);
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/interview/start-dynamic`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          interviewType, 
+          questionCount,
+          resumeText,
+          jdText 
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'Failed to start interview');
+      }
+      
+      const data = await response.json();
+      
+      setInterviewConfig({
+        interviewType: data.interviewType,
+        questionCount: data.questionCount,
+        questionSource: data.questionSource,
+        startTime: new Date()
+      });
+      
+      setSessionId(data.sessionId);
+      setQuestions(data.questions);
+      setCurrentQuestionIndex(0);
+      setResponses({});
+      setResults(null);
+      
+      console.log(`✅ Dynamic interview started: ${data.questionCount} questions (${data.questionSource})`);
+      
+    } catch (error) {
+      console.error('❌ Failed to start dynamic interview:', error);
+      alert(`Failed to start interview: ${error.message}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // ✅ KEEP EXISTING: submitResponse function (no changes)
   const submitResponse = async (response, timeSpent) => {
     try {
@@ -150,6 +202,7 @@ export function useInterview() {
     
     // Functions  
     startInterview,
+    startDynamicInterview,
     submitResponse,
     nextQuestion,
     completeInterview,

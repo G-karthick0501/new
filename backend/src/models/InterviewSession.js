@@ -66,6 +66,13 @@ const interviewSessionSchema = new mongoose.Schema({
     default: null
   },
   
+  // NEW: Question generation metadata
+  metadata: {
+    questionSource: { type: String, enum: ['gemini', 'fallback', 'hardcoded'], default: 'hardcoded' },
+    generatedAt: Date,
+    hadJD: Boolean
+  },
+  
   status: { type: String, enum: ['in_progress', 'completed', 'ai_processing'], default: 'in_progress' },
   completedAt: Date
 }, { timestamps: true });

@@ -8,7 +8,8 @@ class GeminiService {
             throw new Error('GOOGLE_API_KEY environment variable is not set');
         }
         const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-        this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // or gemini-1.5-pro if enabled
+        // Use gemini-2.0-flash-exp (same as Python service)
+        this.model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     }
 
     async generateContent(prompt) {

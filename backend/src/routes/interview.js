@@ -3,6 +3,7 @@ const express = require("express");
 const auth = require("../middleware/auth");
 const InterviewSession = require("../models/InterviewSession");
 const { getQuestions,validateQuestionRequest } = require("../services/questionBank");
+const geminiQuestionGenerator = require("../services/geminiQuestionGenerator");
 
 const axios = require('axios');
 
@@ -10,6 +11,100 @@ const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 const AI_SERVICE_TIMEOUT = 180000; // 180 seconds
+
+// ============================================
+// 🆕 START INTERVIEW WITH DYNAMIC QUESTIONS
+// ============================================
+router.post("/start-dynamic", auth, async (req, res) => {
+  try {
+    const { 
+      interviewType,
+      questionCount = 5,
+      resumeText,
+      jdText = null
+    } = req.body;
+    
+    console.log(`🎤 Starting DYNAMIC ${interviewType} interview`);
+    console.log(`   Questions: ${questionCount}`);
+    console.log(`   Resume: ${resumeText?.length || 0} chars`);
+    console.log(`   JD: ${jdText?.length || 0} chars`);
+
+    // Validate
+    if (!resumeText || resumeText.trim().length < 50) {
+      return res.status(400).json({ 
+        msg: "Resume text is required (minimum 50 characters)" 
+      });
+    }
+
+    if (!['technical', 'behavioral'].includes(interviewType)) {
+      return res.status(400).json({ 
+        msg: "Invalid interview type. Must be 'technical' or 'behavioral'" 
+      });
+    }
+
+    let questions = [];
+    let questionSource = 'gemini';
+
+    try {
+      // Generate with Gemini
+      questions = await geminiQuestionGenerator.generateQuestions(
+        resumeText,
+        jdText,
+        interviewType,
+        questionCount
+      );
+
+    } catch (geminiError) {
+      console.error('❌ Gemini failed, using fallback:', geminiError.message);
+      questionSource = 'fallback';
+      questions = geminiQuestionGenerator.getFallbackQuestions(interviewType, questionCount);
+    }
+
+    if (!questions || questions.length === 0) {
+      return res.status(500).json({ msg: "Failed to generate questions" });
+    }
+
+    // Create session
+    const session = new InterviewSession({
+      userId: req.user.uid,
+      interviewType,
+      questionCount: questions.length,
+      questions: questions.map(q => ({ 
+        questionText: q.text,
+        questionId: q.id,
+        category: q.category
+      })),
+      metadata: {
+        questionSource,
+        generatedAt: new Date(),
+        hadJD: !!jdText
+      }
+    });
+    
+    await session.save();
+    
+    console.log(`✅ Dynamic interview created: ${session._id} (source: ${questionSource})`);
+    
+    res.json({
+      sessionId: session._id,
+      interviewType,
+      questionCount: questions.length,
+      questionSource,
+      questions: questions.map(q => ({ 
+        id: q.id, 
+        text: q.text, 
+        category: q.category 
+      }))
+    });
+    
+  } catch (error) {
+    console.error("❌ Failed to start dynamic interview:", error);
+    res.status(500).json({ 
+      msg: "Failed to start interview",
+      details: error.message 
+    });
+  }
+});
 
 // Start new interview
 router.post("/start", auth, async (req, res) => {

@@ -9,9 +9,16 @@ export default function MockInterview() {
   const interview = useInterview();
   const [interviewPhase, setInterviewPhase] = useState('start'); // 'start', 'session', 'results'
   
-  // Handle interview start with questionCount
-  const handleInterviewStart = async (interviewType, questionCount) => {
-    await interview.startInterview(interviewType, questionCount);
+  // ✅ MODIFIED: Handle interview start with resume/JD
+  const handleInterviewStart = async (interviewType, questionCount, resumeText, jdText) => {
+    // Use dynamic endpoint if resume is provided
+    if (resumeText) {
+      await interview.startDynamicInterview(interviewType, questionCount, resumeText, jdText);
+    } else {
+      // Fallback to hardcoded (shouldn't happen with new flow)
+      await interview.startInterview(interviewType, questionCount);
+    }
+    
     if (interview.questions && interview.questions.length > 0) {
       setInterviewPhase('session');
     }
