@@ -51,7 +51,7 @@ const interviewSessionSchema = new mongoose.Schema({
     recommendation: String
   },
   
-  // ✅ NEW: AI service metadata
+  // NEW: AI service metadata
   aiAnalysis: {
     processed: { type: Boolean, default: false },
     processingTime: Number, // milliseconds
@@ -60,11 +60,17 @@ const interviewSessionSchema = new mongoose.Schema({
     errorMessage: String // if AI analysis failed
   },
   
+  // NEW: Emotion analysis summary
+  emotion_summary: {
+    type: Object,
+    default: null
+  },
+  
   status: { type: String, enum: ['in_progress', 'completed', 'ai_processing'], default: 'in_progress' },
   completedAt: Date
 }, { timestamps: true });
 
-// ✅ NEW: Add helper methods
+// NEW: Add helper methods
 interviewSessionSchema.methods.hasAIAnalysis = function() {
   return this.aiAnalysis && this.aiAnalysis.processed;
 };

@@ -32,6 +32,7 @@ export default function InterviewSession({ interview, onComplete }) {
 
   const generateEmotionSummary = async (emotionHistory) => {
     try {
+      // Step 1: Generate emotion summary from AI service
       const response = await fetch('http://localhost:8001/emotion-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,11 +42,29 @@ export default function InterviewSession({ interview, onComplete }) {
       const data = await response.json();
       if (data.success) {
         console.log('📊 Emotion Summary:', data.summary);
-        // Store summary for final report
+        // Store summary in interview object
         interview.emotionSummary = data.summary;
+        
+        // Step 2: Save emotion summary to backend database
+        const token = localStorage.getItem('token');
+        const saveResponse = await fetch(`http://localhost:5000/api/interview/${interview.sessionId}/emotion-summary`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ emotion_summary: data.summary })
+        });
+        
+        const saveData = await saveResponse.json();
+        if (saveData.success) {
+          console.log('✅ Emotion summary saved to database');
+        } else {
+          console.warn('⚠️ Failed to save emotion summary to database:', saveData.msg);
+        }
       }
     } catch (err) {
-      console.error('Failed to generate emotion summary:', err);
+      console.error('❌ Failed to generate/save emotion summary:', err);
     }
   };
 

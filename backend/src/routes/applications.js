@@ -116,10 +116,38 @@ router.patch("/:id/status", auth, async (req, res) => {
       req.params.id,
       { status },
       { new: true }
-    );
+    ).populate('jobId'); // Populate to get job details
 
     if (!application) {
       return res.status(404).json({ msg: "Application not found" });
+    }
+
+    // Create notification for candidate
+    try {
+      // Map status to notification type
+      const statusTypeMap = {
+        'Shortlisted': 'success',
+        'Rejected': 'error',
+        'Interview Scheduled': 'info',
+        'Under Review': 'info',
+        'Hired': 'success'
+      };
+      
+      const notificationType = statusTypeMap[status] || 'info';
+      const jobTitle = application.jobId?.title || 'the position';
+      
+      await createNotification(application.candidateId, {
+        type: notificationType,
+        title: 'Application Status Updated',
+        message: `Your application for ${jobTitle} has been ${status}`,
+        link: `/candidate-dashboard?tab=jobs`,
+        sendEmailNotification: true
+      });
+      
+      console.log(`✅ Notification sent to candidate for status: ${status}`);
+    } catch (notifError) {
+      console.error('⚠️ Failed to send notification:', notifError.message);
+      // Don't fail the request if notification fails
     }
 
     res.json(application);
@@ -127,7 +155,6 @@ router.patch("/:id/status", auth, async (req, res) => {
     res.status(500).json({ msg: "Failed to update status" });
   }
 });
-
 
 // Delete application (Candidate can delete own, HR can delete for their jobs)
 router.delete("/:id", auth, async (req, res) => {

@@ -321,5 +321,37 @@ router.post("/complete", auth, async (req, res) => {
     res.status(500).json({ msg: "Failed to complete interview" });
   }
 });
+
+// ✅ NEW: Save emotion summary
+router.post("/:sessionId/emotion-summary", auth, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { emotion_summary } = req.body;
+    
+    console.log(`😊 Saving emotion summary for session ${sessionId}`);
+    
+    const session = await InterviewSession.findById(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ msg: "Interview session not found" });
+    }
+    
+    // Save emotion summary (no ownership check, matching /complete route pattern)
+    session.emotion_summary = emotion_summary;
+    await session.save();
+    
+    console.log(`✅ Emotion summary saved for session ${sessionId}`);
+    
+    res.json({ 
+      success: true, 
+      message: "Emotion summary saved successfully",
+      emotion_summary: session.emotion_summary
+    });
+    
+  } catch (error) {
+    console.error("❌ Failed to save emotion summary:", error);
+    res.status(500).json({ msg: "Failed to save emotion summary" });
+  }
+});
   
 module.exports = router;
