@@ -39,7 +39,7 @@ const Timer = ({ startTime }) => {
 };
 
 // Create iframe HTML - extracted as function to be called once
-function createIframeHTML() {
+function createIframeHTML(emotionServiceUrl) {
   return `
 <!DOCTYPE html>
 <html>
@@ -68,6 +68,7 @@ function createIframeHTML() {
     let stream = null;
     let emotionInterval = null;
     let isAnalyzing = false;
+    const EMOTION_SERVICE_URL = '${emotionServiceUrl}';
 
     // Start camera
     async function startCamera() {
@@ -123,7 +124,7 @@ function createIframeHTML() {
             formData.append('file', blob, 'frame.jpg');
             
             try {
-              const response = await fetch(import.meta.env.VITE_AUDIO_EMOTION_URL + '/analyze-emotion', {
+              const response = await fetch(EMOTION_SERVICE_URL + '/analyze-emotion', {
                 method: 'POST',
                 body: formData
               });
@@ -187,7 +188,7 @@ const WebcamIframe = memo(function WebcamIframe({ isRecording, onEmotionData }) 
 
   // Create iframe HTML only once
   if (!iframeHTMLRef.current) {
-    iframeHTMLRef.current = createIframeHTML();
+    iframeHTMLRef.current = createIframeHTML(import.meta.env.VITE_AUDIO_EMOTION_URL);
   }
 
   // Cleanup when component unmounts (interview ends)
