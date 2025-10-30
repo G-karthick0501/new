@@ -1,7 +1,7 @@
 // frontend/src/components/interview/ResponseInput.jsx - UPDATED with API_BASE + Speech-to-Text
 import { useState, useEffect, useRef } from 'react';
 
-const API_BASE = "http://localhost:5000/api"; // ✅ Centralized API base
+const API_BASE = import.meta.env.VITE_API_URL + "/api"; // ✅ Centralized API base
 
 export default function ResponseInput({ 
   currentResponse, 
@@ -104,11 +104,11 @@ export default function ResponseInput({
           try {
             // Parallel requests: Transcription + Audio Emotion
             const [transcriptionRes, emotionRes] = await Promise.all([
-              fetch(`http://localhost:8003/transcribe`, {  // Whisper transcription
+              fetch(import.meta.env.VITE_TRANSCRIPTION_URL + '/transcribe', {  // Whisper transcription
                 method: "POST",
                 body: formData
               }),
-              fetch(`http://localhost:8002/analyze-audio`, {  // Audio emotion - WORKING
+              fetch(import.meta.env.VITE_AUDIO_EMOTION_URL + '/analyze-audio', {  // Audio emotion - WORKING
                 method: "POST",
                 body: emotionFormData
               }).catch(err => {

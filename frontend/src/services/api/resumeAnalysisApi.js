@@ -1,6 +1,6 @@
 // frontend/src/services/api/resumeAnalysisApi.js - UPDATED for two-step flow
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
 
 export const resumeAnalysisService = {
   // File validation

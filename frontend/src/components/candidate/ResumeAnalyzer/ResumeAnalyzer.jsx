@@ -57,14 +57,14 @@ export default function ResumeAnalyzer() {
 
   const handleTestConnection = async () => {
     try {
-      const response = await fetch('http://localhost:8000/');
+      const response = await fetch(import.meta.env.VITE_RESUME_ANALYZER_URL + '/');
       if (response.ok) {
         alert('✅ Connection successful! AI service is running.');
       } else {
         alert('⚠️ AI service responded but with an error.');
       }
     } catch (err) {
-      alert('❌ Cannot connect to AI service. Make sure it\'s running on port 8000.');
+      alert('❌ Cannot connect to AI service. Make sure the Resume Analyzer service is running.');
     }
   };
 

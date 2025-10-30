@@ -123,7 +123,7 @@ function createIframeHTML() {
             formData.append('file', blob, 'frame.jpg');
             
             try {
-              const response = await fetch('http://localhost:8001/analyze-emotion', {
+              const response = await fetch(import.meta.env.VITE_AUDIO_EMOTION_URL + '/analyze-emotion', {
                 method: 'POST',
                 body: formData
               });
@@ -205,7 +205,7 @@ const WebcamIframe = memo(function WebcamIframe({ isRecording, onEmotionData }) 
 
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.origin !== 'http://localhost:5173') return;
+      if (!event.origin.includes('localhost:5173') && !event.origin.includes('.github.dev')) return;
       
       const { type, data } = event.data;
       

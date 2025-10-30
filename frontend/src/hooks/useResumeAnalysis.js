@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { resumeAnalysisService } from '../services/api/resumeAnalysisApi';
 
 const STORAGE_KEY = 'resumeAnalysisState';
-const AI_SERVICE_BASE = 'http://localhost:8000'; // FastAPI AI service
+const AI_SERVICE_BASE = import.meta.env.VITE_RESUME_ANALYZER_URL; // FastAPI AI service
 
 export function useResumeAnalysis() {
   const [sessionId, setSessionId] = useState(null);

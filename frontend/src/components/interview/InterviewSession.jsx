@@ -53,7 +53,7 @@ export default function InterviewSession({ interview, onComplete }) {
 
   const generateEmotionSummary = async (emotionHistory) => {
     try {
-      const response = await fetch('http://localhost:8001/emotion-summary', {  // Video emotion service on port 8001
+      const response = await fetch(import.meta.env.VITE_AUDIO_EMOTION_URL + '/emotion-summary', {  // Video emotion service
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emotion_history: emotionHistory })
