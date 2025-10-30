@@ -17,17 +17,17 @@ pdfplumber==0.10.0
 pypdfium2==4.30.0
 pdfminer.six==20221105
 
-# NLP & ML
+# NLP & ML (Updated for compatibility)
 nltk==3.8.1
 spacy==3.7.2
 sentence-transformers==2.2.2
 transformers==4.33.2
 torch==2.2.0
-numpy==1.24.3
-scikit-learn==1.3.0
+numpy>=2.0.0
+scikit-learn>=1.7.0
 
 # Data Processing
-pandas==2.0.3
+pandas>=2.0.0
 
 # PDF Generation
 fpdf2==2.8.4
