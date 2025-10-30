@@ -71,35 +71,9 @@ async def root():
             "POST /analyze-skills",
             "POST /optimize-with-skills",
             "POST /generate-pdf",
-            "POST /test-connection",
-            "POST /auth/google"
+            "POST /test-connection"
         ]
     }
-
-
-@app.post("/auth/google")
-async def google_auth(request: dict):
-    """Handle Google OAuth authentication"""
-    try:
-        token = request.get("token")
-        if not token:
-            return {"success": False, "msg": "No token provided"}
-        
-        # For now, accept any valid Google token (in production, verify with Google)
-        # Extract user info from token (simplified)
-        user_info = {
-            "email": "user@gmail.com",  # Would extract from real token
-            "name": "Test User",
-            "picture": "https://via.placeholder.com/150"
-        }
-        
-        return {
-            "success": True,
-            "user": user_info,
-            "token": "mock_jwt_token_" + str(int(time.time()))
-        }
-    except Exception as e:
-        return {"success": False, "msg": str(e)}
 
 
 @app.get("/test-connection")
