@@ -1,0 +1,36 @@
+JOB DESCRIPTION
+================
+
+Senior Software Engineer Position
+
+Company: Tech Innovations Inc.
+Location: San Francisco, CA
+Type: Full-time
+
+Requirements:
+- 5+ years of software development experience
+- Strong proficiency in JavaScript and React
+- Experience with Node.js and backend development
+- Knowledge of cloud platforms (AWS preferred)
+- Familiarity with Agile/Scrum methodologies
+- Excellent communication and teamwork skills
+
+Responsibilities:
+- Design and develop scalable web applications
+- Collaborate with cross-functional teams
+- Write clean, maintainable code
+- Participate in code reviews and mentorship
+- Contribute to technical architecture decisions
+
+Preferred Qualifications:
+- Experience with Python and machine learning
+- Knowledge of microservices architecture
+- Familiarity with DevOps practices
+- Bachelor's degree in Computer Science or related field
+
+Benefits:
+- Competitive salary and equity
+- Health, dental, and vision insurance
+- 401(k) with company match
+- Professional development opportunities
+- Flexible work arrangements

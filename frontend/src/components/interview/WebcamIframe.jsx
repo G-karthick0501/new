@@ -188,7 +188,7 @@ const WebcamIframe = memo(function WebcamIframe({ isRecording, onEmotionData }) 
 
   // Create iframe HTML only once
   if (!iframeHTMLRef.current) {
-    iframeHTMLRef.current = createIframeHTML(import.meta.env.VITE_AUDIO_EMOTION_URL);
+    iframeHTMLRef.current = createIframeHTML(import.meta.env.VITE_VIDEO_EMOTION_URL);
   }
 
   // Cleanup when component unmounts (interview ends)

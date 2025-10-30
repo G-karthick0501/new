@@ -1,0 +1,26 @@
+TEST RESUME
+===========
+
+John Doe
+Software Engineer
+
+Experience:
+- 5 years of software development experience
+- Proficient in JavaScript, React, Node.js
+- Experience with Python and machine learning
+- Strong problem-solving skills
+
+Education:
+- Bachelor of Science in Computer Science
+- GPA: 3.8/4.0
+
+Skills:
+- Programming: JavaScript, Python, Java, C++
+- Frameworks: React, Node.js, Express, Django
+- Databases: MongoDB, PostgreSQL, MySQL
+- Tools: Git, Docker, AWS, Jenkins
+
+Projects:
+- E-commerce platform using React and Node.js
+- Machine learning model for sentiment analysis
+- RESTful API development for mobile applications

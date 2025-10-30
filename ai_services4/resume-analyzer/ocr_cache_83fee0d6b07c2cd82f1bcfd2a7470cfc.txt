@@ -1,0 +1,111 @@
+PDF_HASH: 83fee0d6b07c2cd82f1bcfd2a7470cfc
+EXTRACTED_AT: 2025-10-30T11:49:01.983231
+CONTENT_LENGTH: 4517
+CACHE_VERSION: 2.0
+=== OCR CONTENT START ===
+xO Sas
+We Eo
+Job Description - Software Engineer |
+
+Department: Engineering - 2013-03 Exemption Status: Non-Exempt
+Summary:
+This position is responsible for software development in multi-application, multi-server, and hosted
+environments. The candidate will primarily provide system/configuration support with a focus in helping
+the needs of both internal and external customers. He or she will participate in all facets of software and
+system development life-cycle.
+The most qualified candidate for this role will have experience working with business intelligence in the
+public safety and/or public health software fields and have formal software education and/or a ton of
+practical experience. We develop primarily in C#, .NET, SQL, SSRS and mobile. Anyone that might fit well
+at FirstWatch must be hard-working, people-oriented, friendly, patient, a fast learner, think quickly on
+their feet, take initiative and responsibility, and LOVE providing our customers great and honest
+customer service. This person will need to maintain a high quality productivity level within a fast paced
+environment. This position shares responsibility (rotates) with other engineering staff for 24x7 on call
+duties and so must be able to thrive in this environment.
+Responsibilities:
+
+- Maintain and modify the software and system configurations of production, staged, and test
+applications.
+
+- Interface with different stakeholders to determine and propose appropriate and effective
+technology solutions to meet business and technical objectives.
+
+- Develop interfaces, applications and other technical solutions to support the business needs
+through the planning, analysis, design, development, implementation and maintenance phases
+of the software and systems development lifecycle.
+
+- Create system requirements, technical specifications, and test plans.
+
+- Define the scope of technical projects; provide milestones, identify dependencies and
+development time estimates.
+
+- Create technical documentation as needed.
+
+- Work independently as well as in a collaborative environment.
+
+- Some off-site work may be required. Some travel may be needed. Provide after-hours support.
+
+- Strong troubleshooting skills.
+
+- Strong communication skills.
+
+- Be able to work under tight deadlines.
+
+- Perform other duties as assigned.
+
+Ae
+Wee Ei
+Skills and Credentials:
+
+- Education: BS or MS in Computer Science, Computer Engineering, or an equivalent degree.
+
+- Technology: Microsoft technologies as the primary software development platform including
+Microsoft Visual Studio, C#, .NET framework, and ASP.NET (C# or VB.NET). Hands-on experience
+with database technologies such as Microsoft SQL Server (T-SQL), ODBC, SQL Reporting Services,
+and Microsoft Access. Savvy in Web Technologies such as JavaScript, HTML, CSS, Web Services,
+ADO, ADO.NET, and IIS. Experienced with TCP/IP socket communications, FTP/SFTP, XML, and
+data encryption. Familiar with conducting A/B Testing, usability studies, performance tuning,
+and HIPAA compliance.
+
+Preferred Skills and Credentials:
+
+- Current Microsoft Certified Solutions Developer or equivalent.
+
+- Experience in developing and support software solutions for public safety and public health.
+
+- Experience in interfacing with third party solutions.
+
+- Agile development.
+
+- Successful in taking a web-centric solution to the mobile platform.
+
+- Windows Server OS management skills.
+
+- Microsoft SQL Server management skills.
+
+Physical Demands and Work Environment
+
+The physical demands described here are representative of those that must be met by an employee to
+successfully perform the essential functions of this job. Reasonable accommodations may be made to
+enable individuals with disabilities to perform the essential functions.
+
+- While performing the duties of this job, the employee routinely is required to sit; walk; talk and
+hear; use hands to keyboard, finger, handle, and feel; stoop, kneel, crouch, twist, crawl, reach,
+and stretch.
+
+- The employee is occasionally required to move around the office.
+
+- Specific vision abilities required by this job include close vision, color vision, peripheral vision,
+depth perception, and ability to adjust focus.
+
+- May require travel dependent on company needs.
+
+- The employee may occasionally lift and/or move up to 30 Ibs.
+
+- Can work under deadlines.
+
+This job description is subject to change at any time and will include other tasks and duties as
+assigned.
+
+l acknowledge receipt of this job description.
+
+Signature/Print Name Date
