@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth"; // Assuming you have a useAuth hook
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
 
 export default function Dashboard() {
   const { user, logout, isAuthenticated } = useAuth(); // Use the hook to get user, logout function

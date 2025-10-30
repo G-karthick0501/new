@@ -3,7 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import GoogleOAuth from "../components/GoogleOAuth";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL + "/api";
 
 export default function Signup() {
   const [form, setForm] = useState({ 
