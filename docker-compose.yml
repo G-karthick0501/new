@@ -64,6 +64,44 @@ services:
       timeout: 10s
       retries: 3
 
+  audio-emotion:
+    build:
+      context: ./ai_services4/audio-emotion
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace/ai_services4/audio-emotion
+    command: source venv_audio_emotion/bin/activate && uvicorn app_cpu_friendly:app --host 0.0.0.0 --port 8002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  transcription-service:
+    build:
+      context: ./ai_services4/interview-analyzer
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace/ai_services4/interview-analyzer
+    command: source whisper_venv/bin/activate && uvicorn whisper_service:app --host 0.0.0.0 --port 8003
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   workspace:
     driver: local

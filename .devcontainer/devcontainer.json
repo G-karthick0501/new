@@ -32,8 +32,8 @@
       }
     }
   },
-  "postCreateCommand": "cd ai_services4/resume-analyzer && pip install -r requirements.txt && python -m spacy download en_core_web_sm && cd ../../backend && npm install && cd ../frontend && npm install",
-  "postStartCommand": "cd ai_services4/resume-analyzer && source resume_env/bin/activate && python app.py & cd ../../backend && npm start & cd ../frontend && npm run dev",
+  "postCreateCommand": "cd ai_services4/resume-analyzer && pip install -r requirements.txt && python -m spacy download en_core_web_sm && cd ../../audio-emotion && pip install -r requirements.txt && cd ../interview-analyzer && pip install -r requirements.txt && cd ../../backend && npm install && cd ../frontend && npm install",
+  "postStartCommand": "cd ai_services4/resume-analyzer && source resume_env/bin/activate && python app.py & cd ../../audio-emotion && source venv_audio_emotion/bin/activate && uvicorn app_cpu_friendly:app --host 0.0.0.0 --port 8002 & cd ../interview-analyzer && source whisper_venv/bin/activate && uvicorn whisper_service:app --host 0.0.0.0 --port 8003 & cd ../../backend && npm start & cd ../frontend && npm run dev",
   "portsAttributes": {
     "8000": {
       "label": "Resume Analyzer",
@@ -46,8 +46,16 @@
     "5173": {
       "label": "Frontend",
       "onAutoForward": "notify"
+    },
+    "8002": {
+      "label": "Audio Emotion Service",
+      "onAutoForward": "notify"
+    },
+    "8003": {
+      "label": "Transcription Service",
+      "onAutoForward": "notify"
     }
   },
-  "forwardPorts": [8000, 5000, 5173],
+  "forwardPorts": [8000, 5000, 5173, 8002, 8003],
   "remoteUser": "vscode"
 }
