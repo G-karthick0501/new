@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import optimized components
 from core.tfidf_similarity import TFIDFSimilarityEngine, compute_chunk_similarity
 from services.reportlab_generator import ReportLabPDFGenerator, generate_optimized_resume_pdf
+from services.preprocessing import clean_text_for_similarity
 from utils.file_utils import extract_text_from_pdf
 
 # OCR imports for scanned PDF support
@@ -119,8 +120,8 @@ async def analyze_skills(
         print(f"📄 JD length: {len(jd_text_original)} chars")
         
         # Use cleaned text ONLY for similarity analysis
-        resume_text = preprocessing.clean_text_for_similarity(resume_text_original)
-        jd_text = preprocessing.clean_text_for_similarity(jd_text_original)
+        resume_text = clean_text_for_similarity(resume_text_original)
+        jd_text = clean_text_for_similarity(jd_text_original)
         
         # Check for empty PDFs
         if not resume_text or len(resume_text.strip()) < 50:
@@ -242,8 +243,8 @@ async def optimize_with_skills(
         jd_text_original = extract_text_from_pdf(jd_file)
         
         # Use cleaned text ONLY for similarity analysis
-        resume_text = preprocessing.clean_text_for_similarity(resume_text_original)
-        jd_text = preprocessing.clean_text_for_similarity(jd_text_original)
+        resume_text = clean_text_for_similarity(resume_text_original)
+        jd_text = clean_text_for_similarity(jd_text_original)
         
         # Add skills to original formatted resume text
         optimized_text = resume_text_original.strip() + f"\n\nTECHNICAL SKILLS\nAdditional Skills: {', '.join(skills_list)}"
