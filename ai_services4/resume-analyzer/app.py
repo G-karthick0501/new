@@ -21,8 +21,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Import optimized components
 from core.tfidf_similarity import TFIDFSimilarityEngine, compute_chunk_similarity
-from core import optimizer
-from services import preprocessing
 from services.reportlab_generator import ReportLabPDFGenerator, generate_optimized_resume_pdf
 from utils.file_utils import extract_text_from_pdf
 
