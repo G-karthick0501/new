@@ -1,0 +1,7 @@
+node_modules
+**/node_modules
+**/node_modules/**
+interview-analyzer/node_modules
+resume-analyzer/venv
+interview-analyzer/emotion_env
+interview-analyzer/models

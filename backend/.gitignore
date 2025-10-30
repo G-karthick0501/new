@@ -1,0 +1,91 @@
+/node_modules/
+/dist/
+/build/
+/out/
+/vendor/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Log and Temporary Files
+npm-debug.log*
+yarn-debug.log*
+*.log
+*.tmp
+*.temp
+/tmp/
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# Common sensitive files (add more as needed)
+*.key
+*.pem
+*.p12
+*.crt
+
+# Compiled files for various languages (add or remove as needed)
+# Python
+__pycache__/
+*.pyc
+
+# Java
+*.class
+*.jar
+target/
+
+# C#
+bin/
+obj/
+
+# Common package files
+*.zip
+*.tar
+*.gz
+*.rar
+
+# Other
+coverage/
+.cache
+
+
+
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Test files
+*.test.pdf
+*.test.tex
+test-files/
+tectonic_fixed_*
+
+# LaTeX temporary files
+*.aux
+*.log
+*.out
+
+# Package files (Python projects)
+ai_services4/**/package-lock.json
+
+# Generated resumes
+*_generated_resume.*

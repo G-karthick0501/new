@@ -1,0 +1,53 @@
+{
+  "name": "AI Recruitment Platform",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "resume-analyzer",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": "true"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18",
+      "nodeGypDependencies": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flake8",
+        "ms-python.black-formatter",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "postCreateCommand": "cd ai_services4/resume-analyzer && pip install -r requirements.txt && python -m spacy download en_core_web_sm && cd ../../backend && npm install && cd ../frontend && npm install",
+  "postStartCommand": "cd ai_services4/resume-analyzer && source resume_env/bin/activate && python app.py & cd ../../backend && npm start & cd ../frontend && npm run dev",
+  "portsAttributes": {
+    "8000": {
+      "label": "Resume Analyzer",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend",
+      "onAutoForward": "notify"
+    }
+  },
+  "forwardPorts": [8000, 5000, 5173],
+  "remoteUser": "vscode"
+}

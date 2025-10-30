@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  resume-analyzer:
+    build: 
+      context: ./ai_services4/resume-analyzer
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace/ai_services4/resume-analyzer
+    command: source resume_env/bin/activate && python app.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://localhost:27017/ai-recruitment
+      - RESUME_ANALYZER_URL=http://resume-analyzer:8000
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace/backend
+    command: npm start
+    depends_on:
+      - resume-analyzer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+      - VITE_RESUME_ANALYZER_URL=http://localhost:8000
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace/frontend
+    command: npm run dev
+    depends_on:
+      - backend
+      - resume-analyzer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  workspace:
+    driver: local
+
+networks:
+  default:
+    name: ai-recruitment-network
