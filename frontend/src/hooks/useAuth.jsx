@@ -30,6 +30,8 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.clear();
     setUser(null);
+    // Force navigation to login page with page reload for clean state
+    window.location.href = '/login';
   };
 
   const hasRole = (role) => {

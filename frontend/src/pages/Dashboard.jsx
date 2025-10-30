@@ -37,8 +37,7 @@ export default function Dashboard() {
   }, [navigate, isAuthenticated, logout]);
 
   function handleLogout() {
-    logout();
-    navigate("/");
+    logout(); // logout now handles navigation internally
   }
 
   return (
