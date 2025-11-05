@@ -577,8 +577,9 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 
-// Start server
-const PORT = process.env.PORT || 8000;
+// Start server  
+// ✅ FIX: Use 8001 to avoid conflict with Resume Analyzer (8000)
+const PORT = process.env.PORT || 8001;
 
 app.listen(PORT, () => {
     console.log(`\n🚀 Human AI Emotion Detection Service`);

@@ -17,6 +17,7 @@ export function useResumeAnalysis() {
   const [error, setError] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
 
+  // ✅ FIX: Always start with 'upload' step - don't restore from localStorage
   const [currentStep, setCurrentStep] = useState('upload'); // upload, skillSelection, results
 
   const [originalResume, setOriginalResume] = useState('');
@@ -27,31 +28,9 @@ export function useResumeAnalysis() {
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
 
-  // Load saved state on component mount
+  // ✅ FIX: Clear localStorage on mount to prevent modal bug
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const savedState = JSON.parse(saved);
-        
-        // Only restore if it's recent (within 1 hour)
-        const savedTime = new Date(savedState.timestamp);
-        const now = new Date();
-        const hoursSinceAnalysis = (now - savedTime) / (1000 * 60 * 60);
-        
-        if (hoursSinceAnalysis < 1) {
-          if (savedState.sessionId) setSessionId(savedState.sessionId);
-          if (savedState.missingSkills) setMissingSkills(savedState.missingSkills);
-          if (savedState.improvementTips) setImprovementTips(savedState.improvementTips);
-          if (savedState.optimizedResume) setOptimizedResume(savedState.optimizedResume);
-          if (savedState.selectedSkills) setSelectedSkills(savedState.selectedSkills);
-          if (savedState.originalResume) setOriginalResume(savedState.originalResume);
-          if (savedState.currentStep) setCurrentStep(savedState.currentStep);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load saved state:', err);
-    }
+    localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   // Save state whenever it changes
