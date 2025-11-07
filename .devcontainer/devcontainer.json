@@ -1,13 +1,11 @@
 {
   "name": "AI Recruitment Platform",
-  "dockerComposeFile": "../docker-compose.yml",
-  "service": "frontend",
-  "workspaceFolder": "/workspace",
-  "shutdownAction": "stopCompose",
+  "image": "mcr.microsoft.com/devcontainers/base:alpine-3.20",
+  "workspaceFolder": "/workspaces/ai-recruitment-platform-codespaces-test",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12",
-      "installTools": "true"
+      "installTools": true
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "18",
@@ -32,8 +30,7 @@
       }
     }
   },
-  "postCreateCommand": "cd ai_services4/resume-analyzer && pip install -r requirements.txt && python -m spacy download en_core_web_sm && cd ../../video-emotion && npm install && cd ../audio-emotion && pip install -r requirements.txt && cd ../interview-analyzer && pip install -r requirements.txt && cd ../../backend && npm install && cd ../frontend && npm install",
-  "postStartCommand": "cd ai_services4/resume-analyzer && source resume_env/bin/activate && python app.py & cd ../../video-emotion && node server.js & cd ../audio-emotion && source venv_audio_emotion/bin/activate && uvicorn app_cpu_friendly:app --host 0.0.0.0 --port 8002 & cd ../interview-analyzer && source whisper_venv/bin/activate && uvicorn whisper_service:app --host 0.0.0.0 --port 8003 & cd ../../backend && npm start & cd ../frontend && npm run dev",
+  "postCreateCommand": "echo 'Container created! Run start_all_services.sh to start services.'",
   "portsAttributes": {
     "8000": {
       "label": "Resume Analyzer",
